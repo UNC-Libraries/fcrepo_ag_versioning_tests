@@ -1,0 +1,8 @@
+# Performance testing
+locust>=2.20.0
+
+# Data analysis and statistics
+requests>=2.31.0
+
+# Configuration
+python-dotenv>=1.0.0
