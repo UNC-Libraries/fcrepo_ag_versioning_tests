@@ -15,6 +15,7 @@ class StatisticsTracker:
     def __init__(self):
         self.responses: List[Dict] = []
         self.creations: List[Dict] = []
+        self.workflows: List[Dict] = []
         self.file_count = 0
         self.total_size = 0
         self.results_dir = "results"
@@ -56,6 +57,16 @@ class StatisticsTracker:
         }
         self.creations.append(record)
     
+    def record_workflow(self, workflow_data: Dict):
+        """
+        Record information about a complete workflow execution
+        
+        Args:
+            workflow_data: Dictionary containing workflow metrics
+        """
+        workflow_data["timestamp"] = datetime.now().isoformat()
+        self.workflows.append(workflow_data)
+    
     def get_statistics(self) -> Dict:
         """
         Get aggregated statistics
@@ -66,8 +77,11 @@ class StatisticsTracker:
         return {
             "total_responses": len(self.responses),
             "total_creations": self.file_count,
+            "total_workflows": len(self.workflows),
             "total_size_bytes": self.total_size,
             "average_response_time": self._calculate_average_response_time(),
+            "average_workflow_duration": self._calculate_average_workflow_duration(),
+            "average_commit_duration": self._calculate_average_commit_duration(),
             "timestamp": datetime.now().isoformat()
         }
     

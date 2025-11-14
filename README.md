@@ -28,7 +28,7 @@ A Python-based performance testing suite for Fedora Repository (fcrepo) using Lo
 
 ```bash
 # Create virtual environment
-python3 -m virtualenv .venv
+python3 -m venv .venv
 
 # Activate the virtual environment
 source .venv/bin/activate
@@ -61,7 +61,7 @@ FCREPO_BASE_PATH=/fcrepo/rest
 Run Locust with the web UI:
 
 ```bash
-locust --host=http://localhost:8880
+locust
 ```
 
 Then open your browser to http://localhost:8089 to configure and start the test.
@@ -71,8 +71,7 @@ Then open your browser to http://localhost:8089 to configure and start the test.
 Run without the web UI:
 
 ```bash
-locust --host=http://localhost:8880 \
-       --users 10 \
+locust --users 10 \
        --spawn-rate 1 \
        --run-time 5m \
        --headless
@@ -80,12 +79,13 @@ locust --host=http://localhost:8880 \
 
 ### Command Line Options
 
-- `--host`: Base URL of the fcrepo instance
 - `--users`: Number of concurrent users to simulate
 - `--spawn-rate`: Rate to spawn users (users per second)
 - `--run-time`: Test duration (e.g., 10m, 1h, 300s)
 - `--headless`: Run without web UI
 - `--html`: Generate HTML report (e.g., `--html=results/report.html`)
+
+**Note:** The fcrepo host and base path are configured in the `.env` file, not via command line parameters.
 
 ## Test Scenarios
 
