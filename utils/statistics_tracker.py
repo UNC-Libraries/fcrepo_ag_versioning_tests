@@ -98,6 +98,38 @@ class StatisticsTracker:
         total_time = sum(r["response_time"] for r in self.responses)
         return total_time / len(self.responses)
     
+    def _calculate_average_workflow_duration(self) -> float:
+        """
+        Calculate average workflow duration
+        
+        Returns:
+            Average workflow duration in seconds
+        """
+        if not self.workflows:
+            return 0.0
+        
+        durations = [w.get("workflow_duration") or w.get("patch_duration", 0) for w in self.workflows]
+        if not durations:
+            return 0.0
+        
+        return sum(durations) / len(durations)
+    
+    def _calculate_average_commit_duration(self) -> float:
+        """
+        Calculate average commit duration
+        
+        Returns:
+            Average commit duration in seconds
+        """
+        if not self.workflows:
+            return 0.0
+        
+        commit_durations = [w.get("commit_duration", 0) for w in self.workflows if "commit_duration" in w]
+        if not commit_durations:
+            return 0.0
+        
+        return sum(commit_durations) / len(commit_durations)
+    
     def save_statistics(self, filename: str = None):
         """
         Save statistics to a JSON file
@@ -114,7 +146,8 @@ class StatisticsTracker:
         data = {
             "summary": self.get_statistics(),
             "responses": self.responses,
-            "creations": self.creations
+            "creations": self.creations,
+            "workflows": self.workflows
         }
         
         with open(filepath, "w") as f:

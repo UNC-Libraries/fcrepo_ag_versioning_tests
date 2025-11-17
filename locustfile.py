@@ -8,9 +8,25 @@ from dotenv import load_dotenv
 import os
 import json
 import time
+import atexit
 
 # Load environment variables from .env file
 load_dotenv()
+
+# Global dictionary to track all stats trackers for saving on exit
+_all_stats_trackers = []
+
+def save_all_stats():
+    """Save all statistics on program exit"""
+    print("\n=== Saving all statistics ===")
+    for tracker in _all_stats_trackers:
+        try:
+            tracker.save_statistics()
+        except Exception as e:
+            print(f"Error saving statistics: {e}")
+
+# Register the cleanup function
+atexit.register(save_all_stats)
 
 
 class FcrepoUser(HttpUser):
@@ -29,6 +45,9 @@ class FcrepoUser(HttpUser):
         Initialize any necessary state or authentication
         """
         self.stats_tracker = StatisticsTracker()
+        # Register this tracker for saving on exit
+        _all_stats_trackers.append(self.stats_tracker)
+        
         self.base_path = os.getenv("FCREPO_BASE_PATH", "/fcrepo/rest")
         self.test_bins_path = "/Users/bbpennel/git/boxc-ansible/workspace/test_bins/"
         self.test_ocfl_path = "/Users/bbpennel/git/boxc-ansible/workspace/ocfl_root/"
@@ -36,6 +55,8 @@ class FcrepoUser(HttpUser):
         # Track created collections and their update counters
         self.created_collections = []
         self.collection_counters = {}
+        self.normal_collection = None
+        self.ag_collection = None
         
         # Set up authentication if credentials are provided
         username = os.getenv("FCREPO_USERNAME")
@@ -46,8 +67,9 @@ class FcrepoUser(HttpUser):
         else:
             self.auth = None
         
-        # Create a collection for this user to work with
-        self.create_collection_with_transaction()
+        # Create both a normal collection and an archival group collection
+        self.create_collection_with_transaction(is_archival_group=False)
+        self.create_collection_with_transaction(is_archival_group=True)
 
     def _create_test_binary(self, filename, timestamp):
         """
@@ -89,11 +111,14 @@ class FcrepoUser(HttpUser):
         
         return file_count, dir_count, total_size
 
-    def create_collection_with_transaction(self):
+    def create_collection_with_transaction(self, is_archival_group=False):
         """
         Complete workflow: Create a collection object with metadata in a transaction
         Steps 2-5 from the requirements
         Called once during on_start() to set up the collection for this user
+        
+        Args:
+            is_archival_group: If True, creates an ArchivalGroup collection
         """
         # Capture initial OCFL storage state
         initial_file_count, initial_dir_count, initial_total_size = self._get_directory_stats(self.test_ocfl_path)
@@ -102,7 +127,8 @@ class FcrepoUser(HttpUser):
         
         # Generate timestamp for this collection
         timestamp = round(time.time() * 1000)
-        collection_slug = f"collection.{timestamp}"
+        collection_prefix = "ag_collection" if is_archival_group else "collection"
+        collection_slug = f"{collection_prefix}.{timestamp}"
         
         try:
             # Step 2: Open transaction
@@ -133,13 +159,18 @@ class FcrepoUser(HttpUser):
             tx_headers = {"Atomic-ID": tx_id}
             
             # 4a: Create collection object
+            collection_headers = {
+                **tx_headers,
+                "Slug": collection_slug,
+                "Content-Type": "text/turtle"
+            }
+            # Add ArchivalGroup Link header if needed
+            if is_archival_group:
+                collection_headers["Link"] = '<http://fedora.info/definitions/v4/repository#ArchivalGroup>;rel="type"'
+            
             collection_response = self.client.post(
                 self.base_path,
-                headers={
-                    **tx_headers,
-                    "Slug": collection_slug,
-                    "Content-Type": "text/turtle"
-                },
+                headers=collection_headers,
                 data="""<> <http://example.com/test_property> "0" .""",
                 auth=self.auth,
                 name="Create Collection"
@@ -248,6 +279,8 @@ class FcrepoUser(HttpUser):
             
             # Record statistics
             self.stats_tracker.record_workflow({
+                "operation": "create_collection",
+                "collection_type": "archival_group" if is_archival_group else "normal",
                 "collection_id": collection_slug,
                 "timestamp": timestamp,
                 "commit_duration": commit_duration,
@@ -261,22 +294,23 @@ class FcrepoUser(HttpUser):
             self.created_collections.append(collection_slug)
             self.collection_counters[collection_slug] = 0
             
+            # Store reference to normal or AG collection
+            if is_archival_group:
+                self.ag_collection = collection_slug
+            else:
+                self.normal_collection = collection_slug
+            
         except Exception as e:
             print(f"Error in collection creation workflow: {e}")
 
-    @task(10)
-    def patch_collection_property(self):
+    def _patch_collection_property(self, collection_slug, operation_name):
         """
-        PATCH request to update a property on an existing collection
-        Performs SPARQL update to change a test property value
+        Internal method to perform PATCH request on a collection
+        
+        Args:
+            collection_slug: The collection ID to patch
+            operation_name: Name for the Locust statistics (e.g., "PATCH Collection Property")
         """
-        # Only run if we have created collections
-        if not self.created_collections:
-            return
-        
-        # Pick a collection to update (use the first one for simplicity)
-        collection_slug = self.created_collections[0]
-        
         # Increment counter for this collection
         self.collection_counters[collection_slug] += 1
         counter = self.collection_counters[collection_slug]
@@ -303,7 +337,7 @@ WHERE {{ }}"""
             },
             data=sparql_query,
             auth=self.auth,
-            name="PATCH Collection Property"
+            name=operation_name
         )
         patch_duration = time.time() - patch_start
         
@@ -320,7 +354,8 @@ WHERE {{ }}"""
         dir_count_delta = final_dir_count - initial_dir_count
         size_delta = final_total_size - initial_total_size
         
-        print(f"✓ Patched {collection_slug} (update #{counter})")
+        collection_type = "AG" if collection_slug.startswith("ag_") else "Normal"
+        print(f"✓ Patched {collection_type} {collection_slug} (update #{counter})")
         print(f"  - Patch time: {patch_duration:.3f}s")
         print(f"  - OCFL file count delta: {file_count_delta}")
         print(f"  - OCFL directory count delta: {dir_count_delta}")
@@ -329,6 +364,7 @@ WHERE {{ }}"""
         # Record statistics
         self.stats_tracker.record_workflow({
             "operation": "patch_collection",
+            "collection_type": "archival_group" if collection_slug.startswith("ag_") else "normal",
             "collection_id": collection_slug,
             "update_counter": counter,
             "timestamp": time.time(),
@@ -337,6 +373,26 @@ WHERE {{ }}"""
             "patch_collection_ocfl_directories_delta": dir_count_delta,
             "patch_collection_ocfl_size_delta": size_delta
         })
+
+    @task(10)
+    def patch_normal_collection_property(self):
+        """
+        PATCH request to update a property on a normal collection
+        """
+        if not self.normal_collection:
+            return
+        
+        self._patch_collection_property(self.normal_collection, "PATCH Collection Property")
+    
+    @task(10)
+    def patch_ag_collection_property(self):
+        """
+        PATCH request to update a property on an archival group collection
+        """
+        if not self.ag_collection:
+            return
+        
+        self._patch_collection_property(self.ag_collection, "PATCH AG Collection Property")
 
     @task(3)
     def get_root(self):
@@ -377,6 +433,21 @@ WHERE {{ }}"""
         )
         if response.status_code == 201:
             self.stats_tracker.record_creation(response)
+    
+    def on_stop(self):
+        """
+        Called when a simulated user stops
+        Save statistics for this user
+        """
+        if hasattr(self, 'stats_tracker'):
+            try:
+                # Generate unique filename for this user's stats
+                timestamp = time.strftime("%Y%m%d_%H%M%S")
+                user_id = id(self) % 10000  # Simple user identifier
+                filename = f"stats_{timestamp}_user_{user_id}.json"
+                self.stats_tracker.save_statistics(filename)
+            except Exception as e:
+                print(f"Error saving statistics in on_stop: {e}")
 
 
 @events.quitting.add_listener
@@ -385,5 +456,6 @@ def on_quitting(environment, **kwargs):
     Called when the locust process is shutting down
     Save collected statistics
     """
-    print("\n=== Saving statistics ===")
+    print("\n=== Test run completed ===")
+    print("Statistics have been saved to the results/ directory")
     # Statistics will be saved by the tracker instances
