@@ -31,6 +31,7 @@ class FcrepoUser(HttpUser):
         self.stats_tracker = StatisticsTracker()
         self.base_path = os.getenv("FCREPO_BASE_PATH", "/fcrepo/rest")
         self.test_bins_path = "/Users/bbpennel/git/boxc-ansible/workspace/test_bins/"
+        self.test_ocfl_path = "/Users/bbpennel/git/boxc-ansible/workspace/ocfl_root/"
         
         # Set up authentication if credentials are provided
         username = os.getenv("FCREPO_USERNAME")
@@ -51,12 +52,45 @@ class FcrepoUser(HttpUser):
             f.write(str(timestamp))
         return timestamped_name
 
+    def _get_directory_stats(self, path):
+        """
+        Get file count, directory count, and total size for a directory
+        
+        Args:
+            path: Directory path to analyze
+            
+        Returns:
+            Tuple of (file_count, dir_count, total_size_bytes)
+        """
+        file_count = 0
+        dir_count = 0
+        total_size = 0
+        
+        if not os.path.exists(path):
+            return 0, 0, 0
+        
+        for root, dirs, files in os.walk(path):
+            dir_count += len(dirs)
+            file_count += len(files)
+            for file in files:
+                filepath = os.path.join(root, file)
+                try:
+                    total_size += os.path.getsize(filepath)
+                except OSError:
+                    # Skip files we can't access
+                    pass
+        
+        return file_count, dir_count, total_size
+
     @task(1)
     def create_collection_with_transaction(self):
         """
         Complete workflow: Create a collection object with metadata in a transaction
         Steps 2-5 from the requirements
         """
+        # Capture initial OCFL storage state
+        initial_file_count, initial_dir_count, initial_total_size = self._get_directory_stats(self.test_ocfl_path)
+        
         workflow_start = time.time()
         
         # Generate timestamp for this collection
@@ -187,19 +221,33 @@ class FcrepoUser(HttpUser):
                 print(f"Failed to commit transaction: {commit_response.status_code}")
                 return
             
-            # Step 6: Record total workflow time
+            # Step 6: Record total workflow time and capture final OCFL storage state
             workflow_duration = time.time() - workflow_start
+            
+            # Capture final OCFL storage state
+            final_file_count, final_dir_count, final_total_size = self._get_directory_stats(self.test_ocfl_path)
+            
+            # Calculate deltas
+            file_count_delta = final_file_count - initial_file_count
+            dir_count_delta = final_dir_count - initial_dir_count
+            size_delta = final_total_size - initial_total_size
             
             print(f"✓ Collection {collection_slug} created successfully")
             print(f"  - Commit time: {commit_duration:.3f}s")
             print(f"  - Total workflow time: {workflow_duration:.3f}s")
+            print(f"  - OCFL file count delta: {file_count_delta}")
+            print(f"  - OCFL directory count delta: {dir_count_delta}")
+            print(f"  - OCFL size delta: {size_delta} bytes")
             
             # Record statistics
             self.stats_tracker.record_workflow({
                 "collection_id": collection_slug,
                 "timestamp": timestamp,
                 "commit_duration": commit_duration,
-                "workflow_duration": workflow_duration
+                "workflow_duration": workflow_duration,
+                "create_collection_ocfl_count_delta": file_count_delta,
+                "create_collection_ocfl_directories_delta": dir_count_delta,
+                "create_collection_ocfl_size_delta": size_delta
             })
             
         except Exception as e:
