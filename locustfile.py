@@ -33,6 +33,10 @@ class FcrepoUser(HttpUser):
         self.test_bins_path = "/Users/bbpennel/git/boxc-ansible/workspace/test_bins/"
         self.test_ocfl_path = "/Users/bbpennel/git/boxc-ansible/workspace/ocfl_root/"
         
+        # Track created collections and their update counters
+        self.created_collections = []
+        self.collection_counters = {}
+        
         # Set up authentication if credentials are provided
         username = os.getenv("FCREPO_USERNAME")
         password = os.getenv("FCREPO_PASSWORD")
@@ -41,6 +45,9 @@ class FcrepoUser(HttpUser):
             self.auth = (username, password)
         else:
             self.auth = None
+        
+        # Create a collection for this user to work with
+        self.create_collection_with_transaction()
 
     def _create_test_binary(self, filename, timestamp):
         """
@@ -82,11 +89,11 @@ class FcrepoUser(HttpUser):
         
         return file_count, dir_count, total_size
 
-    @task(1)
     def create_collection_with_transaction(self):
         """
         Complete workflow: Create a collection object with metadata in a transaction
         Steps 2-5 from the requirements
+        Called once during on_start() to set up the collection for this user
         """
         # Capture initial OCFL storage state
         initial_file_count, initial_dir_count, initial_total_size = self._get_directory_stats(self.test_ocfl_path)
@@ -133,7 +140,7 @@ class FcrepoUser(HttpUser):
                     "Slug": collection_slug,
                     "Content-Type": "text/turtle"
                 },
-                data="",
+                data="""<> <http://example.com/test_property> "0" .""",
                 auth=self.auth,
                 name="Create Collection"
             )
@@ -250,8 +257,86 @@ class FcrepoUser(HttpUser):
                 "create_collection_ocfl_size_delta": size_delta
             })
             
+            # Add to list of created collections for PATCH operations
+            self.created_collections.append(collection_slug)
+            self.collection_counters[collection_slug] = 0
+            
         except Exception as e:
             print(f"Error in collection creation workflow: {e}")
+
+    @task(10)
+    def patch_collection_property(self):
+        """
+        PATCH request to update a property on an existing collection
+        Performs SPARQL update to change a test property value
+        """
+        # Only run if we have created collections
+        if not self.created_collections:
+            return
+        
+        # Pick a collection to update (use the first one for simplicity)
+        collection_slug = self.created_collections[0]
+        
+        # Increment counter for this collection
+        self.collection_counters[collection_slug] += 1
+        counter = self.collection_counters[collection_slug]
+        prev_counter = counter - 1
+        
+        # Build SPARQL update query
+        sparql_query = f"""DELETE {{
+  <> <http://example.com/test_property> "{prev_counter}" .
+}}
+INSERT {{   
+  <> <http://example.com/test_property> "{counter}" .
+}}
+WHERE {{ }}"""
+        
+        # Capture initial OCFL storage state
+        initial_file_count, initial_dir_count, initial_total_size = self._get_directory_stats(self.test_ocfl_path)
+        
+        # Perform PATCH request
+        patch_start = time.time()
+        response = self.client.patch(
+            f"{self.base_path}/{collection_slug}",
+            headers={
+                "Content-Type": "application/sparql-update"
+            },
+            data=sparql_query,
+            auth=self.auth,
+            name="PATCH Collection Property"
+        )
+        patch_duration = time.time() - patch_start
+        
+        if not response.ok:
+            print(f"Failed to patch collection {collection_slug}: {response.status_code}")
+            print(f"Response body: {response.text}")
+            return
+        
+        # Capture final OCFL storage state
+        final_file_count, final_dir_count, final_total_size = self._get_directory_stats(self.test_ocfl_path)
+        
+        # Calculate deltas
+        file_count_delta = final_file_count - initial_file_count
+        dir_count_delta = final_dir_count - initial_dir_count
+        size_delta = final_total_size - initial_total_size
+        
+        print(f"✓ Patched {collection_slug} (update #{counter})")
+        print(f"  - Patch time: {patch_duration:.3f}s")
+        print(f"  - OCFL file count delta: {file_count_delta}")
+        print(f"  - OCFL directory count delta: {dir_count_delta}")
+        print(f"  - OCFL size delta: {size_delta} bytes")
+        
+        # Record statistics
+        self.stats_tracker.record_workflow({
+            "operation": "patch_collection",
+            "collection_id": collection_slug,
+            "update_counter": counter,
+            "timestamp": time.time(),
+            "patch_duration": patch_duration,
+            "patch_collection_ocfl_count_delta": file_count_delta,
+            "patch_collection_ocfl_directories_delta": dir_count_delta,
+            "patch_collection_ocfl_size_delta": size_delta
+        })
 
     @task(3)
     def get_root(self):
