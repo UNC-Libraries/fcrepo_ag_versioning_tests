@@ -1,0 +1,1376 @@
+{
+  "summary": {
+    "total_responses": 17,
+    "total_creations": 4,
+    "total_workflows": 112,
+    "total_size_bytes": 24119,
+    "average_response_time": 0.02957729411764706,
+    "average_workflow_duration": 0.051815692867551534,
+    "average_commit_duration": 0.09035789966583252,
+    "timestamp": "2025-11-17T14:09:35.744960"
+  },
+  "responses": [
+    {
+      "timestamp": "2025-11-17T14:04:47.607994",
+      "status_code": 200,
+      "response_time": 0.068883,
+      "content_length": 1223
+    },
+    {
+      "timestamp": "2025-11-17T14:05:21.099648",
+      "status_code": 200,
+      "response_time": 0.020978,
+      "content_length": 1327
+    },
+    {
+      "timestamp": "2025-11-17T14:05:27.595884",
+      "status_code": 200,
+      "response_time": 0.037034,
+      "content_length": 1327
+    },
+    {
+      "timestamp": "2025-11-17T14:06:59.956855",
+      "status_code": 200,
+      "response_time": 0.02033,
+      "content_length": 1327
+    },
+    {
+      "timestamp": "2025-11-17T14:07:01.593836",
+      "status_code": 200,
+      "response_time": 0.021771,
+      "content_length": 1327
+    },
+    {
+      "timestamp": "2025-11-17T14:07:16.002856",
+      "status_code": 200,
+      "response_time": 0.021905,
+      "content_length": 1327
+    },
+    {
+      "timestamp": "2025-11-17T14:07:43.081796",
+      "status_code": 200,
+      "response_time": 0.014133,
+      "content_length": 1327
+    },
+    {
+      "timestamp": "2025-11-17T14:07:59.568685",
+      "status_code": 200,
+      "response_time": 0.031682,
+      "content_length": 1327
+    },
+    {
+      "timestamp": "2025-11-17T14:08:23.728106",
+      "status_code": 200,
+      "response_time": 0.029164,
+      "content_length": 1431
+    },
+    {
+      "timestamp": "2025-11-17T14:08:29.205136",
+      "status_code": 200,
+      "response_time": 0.022263,
+      "content_length": 1431
+    },
+    {
+      "timestamp": "2025-11-17T14:08:41.971577",
+      "status_code": 200,
+      "response_time": 0.029855,
+      "content_length": 1535
+    },
+    {
+      "timestamp": "2025-11-17T14:08:50.058858",
+      "status_code": 200,
+      "response_time": 0.031622,
+      "content_length": 1535
+    },
+    {
+      "timestamp": "2025-11-17T14:08:57.498029",
+      "status_code": 200,
+      "response_time": 0.030158,
+      "content_length": 1535
+    },
+    {
+      "timestamp": "2025-11-17T14:09:01.615151",
+      "status_code": 200,
+      "response_time": 0.028332,
+      "content_length": 1535
+    },
+    {
+      "timestamp": "2025-11-17T14:09:03.480086",
+      "status_code": 200,
+      "response_time": 0.028183,
+      "content_length": 1535
+    },
+    {
+      "timestamp": "2025-11-17T14:09:08.036333",
+      "status_code": 200,
+      "response_time": 0.02961,
+      "content_length": 1535
+    },
+    {
+      "timestamp": "2025-11-17T14:09:24.596656",
+      "status_code": 200,
+      "response_time": 0.036911,
+      "content_length": 1535
+    }
+  ],
+  "creations": [
+    {
+      "timestamp": "2025-11-17T14:04:36.260198",
+      "location": "http://localhost:8046/fcrepo/rest/test-resource-1763406276234",
+      "status_code": 201,
+      "response_time": 0.025923
+    },
+    {
+      "timestamp": "2025-11-17T14:05:18.328215",
+      "location": "http://localhost:8046/fcrepo/rest/test-resource-1763406318265",
+      "status_code": 201,
+      "response_time": 0.06151
+    },
+    {
+      "timestamp": "2025-11-17T14:08:08.872982",
+      "location": "http://localhost:8046/fcrepo/rest/test-resource-1763406488806",
+      "status_code": 201,
+      "response_time": 0.064649
+    },
+    {
+      "timestamp": "2025-11-17T14:08:30.276182",
+      "location": "http://localhost:8046/fcrepo/rest/test-resource-1763406510213",
+      "status_code": 201,
+      "response_time": 0.061682
+    }
+  ],
+  "workflows": [
+    {
+      "operation": "create_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "timestamp": "2025-11-17T14:04:36.102366",
+      "commit_duration": 0.11840271949768066,
+      "workflow_duration": 0.3961181640625,
+      "create_collection_ocfl_count_delta": 58,
+      "create_collection_ocfl_directories_delta": 60,
+      "create_collection_ocfl_size_delta": 20297
+    },
+    {
+      "operation": "create_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "timestamp": "2025-11-17T14:04:36.234014",
+      "commit_duration": 0.062313079833984375,
+      "workflow_duration": 0.12962698936462402,
+      "create_collection_ocfl_count_delta": 19,
+      "create_collection_ocfl_directories_delta": 14,
+      "create_collection_ocfl_size_delta": 12118
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 1,
+      "timestamp": "2025-11-17T14:04:38.146715",
+      "patch_duration": 0.12657475471496582,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 2,
+      "patch_collection_ocfl_size_delta": 1
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 1,
+      "timestamp": "2025-11-17T14:04:39.370391",
+      "patch_duration": 0.05538201332092285,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 2,
+      "timestamp": "2025-11-17T14:04:42.335275",
+      "patch_duration": 0.05378603935241699,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 3,
+      "timestamp": "2025-11-17T14:04:44.770128",
+      "patch_duration": 0.06619596481323242,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 4,
+      "timestamp": "2025-11-17T14:04:50.265819",
+      "patch_duration": 0.05431771278381348,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 2,
+      "timestamp": "2025-11-17T14:04:52.345288",
+      "patch_duration": 0.04774212837219238,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 3,
+      "timestamp": "2025-11-17T14:04:54.640815",
+      "patch_duration": 0.04104185104370117,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": -1
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 5,
+      "timestamp": "2025-11-17T14:04:56.302810",
+      "patch_duration": 0.05613112449645996,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 6,
+      "timestamp": "2025-11-17T14:04:57.816398",
+      "patch_duration": 0.04808807373046875,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 4,
+      "timestamp": "2025-11-17T14:04:59.005051",
+      "patch_duration": 0.04790616035461426,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 1
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 7,
+      "timestamp": "2025-11-17T14:05:00.175487",
+      "patch_duration": 0.05069303512573242,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 8,
+      "timestamp": "2025-11-17T14:05:02.119732",
+      "patch_duration": 0.040665626525878906,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 9,
+      "timestamp": "2025-11-17T14:05:07.711540",
+      "patch_duration": 0.07924699783325195,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 3
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 10,
+      "timestamp": "2025-11-17T14:05:10.754313",
+      "patch_duration": 0.06323909759521484,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 1
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 11,
+      "timestamp": "2025-11-17T14:05:12.201358",
+      "patch_duration": 0.05370497703552246,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 12,
+      "timestamp": "2025-11-17T14:05:13.934307",
+      "patch_duration": 0.04217886924743652,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 13,
+      "timestamp": "2025-11-17T14:05:15.556168",
+      "patch_duration": 0.06541609764099121,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 14,
+      "timestamp": "2025-11-17T14:05:16.818049",
+      "patch_duration": 0.049211978912353516,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 15,
+      "timestamp": "2025-11-17T14:05:23.338681",
+      "patch_duration": 0.07020330429077148,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 16,
+      "timestamp": "2025-11-17T14:05:24.801977",
+      "patch_duration": 0.05443978309631348,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 17,
+      "timestamp": "2025-11-17T14:05:30.229465",
+      "patch_duration": 0.05176711082458496,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 18,
+      "timestamp": "2025-11-17T14:05:33.238257",
+      "patch_duration": 0.05479288101196289,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 5,
+      "timestamp": "2025-11-17T14:05:34.709513",
+      "patch_duration": 0.048217058181762695,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 6,
+      "timestamp": "2025-11-17T14:05:39.711203",
+      "patch_duration": 0.05672287940979004,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 19,
+      "timestamp": "2025-11-17T14:05:41.882159",
+      "patch_duration": 0.05727100372314453,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 20,
+      "timestamp": "2025-11-17T14:05:43.671752",
+      "patch_duration": 0.055834054946899414,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 21,
+      "timestamp": "2025-11-17T14:05:45.648072",
+      "patch_duration": 0.06860494613647461,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 7,
+      "timestamp": "2025-11-17T14:05:48.235917",
+      "patch_duration": 0.04970192909240723,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 8,
+      "timestamp": "2025-11-17T14:05:49.671531",
+      "patch_duration": 0.0767831802368164,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": -1
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 22,
+      "timestamp": "2025-11-17T14:05:51.332766",
+      "patch_duration": 0.05344104766845703,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 9,
+      "timestamp": "2025-11-17T14:05:52.717407",
+      "patch_duration": 0.06283998489379883,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 4
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 23,
+      "timestamp": "2025-11-17T14:05:54.253693",
+      "patch_duration": 0.042291879653930664,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 24,
+      "timestamp": "2025-11-17T14:06:03.578350",
+      "patch_duration": 0.04217195510864258,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": -1
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 10,
+      "timestamp": "2025-11-17T14:06:06.149789",
+      "patch_duration": 0.03082871437072754,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 1
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 25,
+      "timestamp": "2025-11-17T14:06:08.928883",
+      "patch_duration": 0.031009197235107422,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 1
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 11,
+      "timestamp": "2025-11-17T14:06:11.791169",
+      "patch_duration": 0.04120182991027832,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 26,
+      "timestamp": "2025-11-17T14:06:13.071267",
+      "patch_duration": 0.03508782386779785,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 12,
+      "timestamp": "2025-11-17T14:06:16.986614",
+      "patch_duration": 0.034049034118652344,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 27,
+      "timestamp": "2025-11-17T14:06:19.413968",
+      "patch_duration": 0.046054840087890625,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 28,
+      "timestamp": "2025-11-17T14:06:24.083355",
+      "patch_duration": 0.04356789588928223,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 29,
+      "timestamp": "2025-11-17T14:06:25.696204",
+      "patch_duration": 0.03827619552612305,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 30,
+      "timestamp": "2025-11-17T14:06:28.055319",
+      "patch_duration": 0.03164219856262207,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 13,
+      "timestamp": "2025-11-17T14:06:30.965946",
+      "patch_duration": 0.039177894592285156,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 14,
+      "timestamp": "2025-11-17T14:06:33.736138",
+      "patch_duration": 0.03431391716003418,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 15,
+      "timestamp": "2025-11-17T14:06:35.939846",
+      "patch_duration": 0.023968935012817383,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 16,
+      "timestamp": "2025-11-17T14:06:36.989334",
+      "patch_duration": 0.03020310401916504,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 17,
+      "timestamp": "2025-11-17T14:06:40.292170",
+      "patch_duration": 0.04337573051452637,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 18,
+      "timestamp": "2025-11-17T14:06:42.874010",
+      "patch_duration": 0.03417015075683594,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 19,
+      "timestamp": "2025-11-17T14:06:44.370966",
+      "patch_duration": 0.0280611515045166,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": -1
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 20,
+      "timestamp": "2025-11-17T14:06:47.105390",
+      "patch_duration": 0.03904008865356445,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 1
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 21,
+      "timestamp": "2025-11-17T14:06:48.221765",
+      "patch_duration": 0.02753305435180664,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 31,
+      "timestamp": "2025-11-17T14:06:51.252492",
+      "patch_duration": 0.0357050895690918,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 32,
+      "timestamp": "2025-11-17T14:06:52.597037",
+      "patch_duration": 0.03039383888244629,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 22,
+      "timestamp": "2025-11-17T14:06:54.532891",
+      "patch_duration": 0.03458881378173828,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 33,
+      "timestamp": "2025-11-17T14:06:57.312402",
+      "patch_duration": 0.03135395050048828,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 23,
+      "timestamp": "2025-11-17T14:07:02.676430",
+      "patch_duration": 0.03645205497741699,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 24,
+      "timestamp": "2025-11-17T14:07:05.168707",
+      "patch_duration": 0.03158688545227051,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 34,
+      "timestamp": "2025-11-17T14:07:07.808286",
+      "patch_duration": 0.04565119743347168,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 35,
+      "timestamp": "2025-11-17T14:07:09.427814",
+      "patch_duration": 0.042929887771606445,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 25,
+      "timestamp": "2025-11-17T14:07:12.295440",
+      "patch_duration": 0.03657889366149902,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": -1
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 36,
+      "timestamp": "2025-11-17T14:07:14.168409",
+      "patch_duration": 0.04312586784362793,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 37,
+      "timestamp": "2025-11-17T14:07:18.096982",
+      "patch_duration": 0.05244588851928711,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 38,
+      "timestamp": "2025-11-17T14:07:19.409270",
+      "patch_duration": 0.05407094955444336,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 39,
+      "timestamp": "2025-11-17T14:07:21.796691",
+      "patch_duration": 0.04060101509094238,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 26,
+      "timestamp": "2025-11-17T14:07:24.437262",
+      "patch_duration": 0.03094196319580078,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 1
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 27,
+      "timestamp": "2025-11-17T14:07:26.249052",
+      "patch_duration": 0.03486371040344238,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 28,
+      "timestamp": "2025-11-17T14:07:29.258528",
+      "patch_duration": 0.0427858829498291,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 40,
+      "timestamp": "2025-11-17T14:07:30.775938",
+      "patch_duration": 0.04208207130432129,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 29,
+      "timestamp": "2025-11-17T14:07:31.941939",
+      "patch_duration": 0.030856847763061523,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 41,
+      "timestamp": "2025-11-17T14:07:34.878398",
+      "patch_duration": 0.04329800605773926,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 42,
+      "timestamp": "2025-11-17T14:07:37.858748",
+      "patch_duration": 0.04133415222167969,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 30,
+      "timestamp": "2025-11-17T14:07:38.962252",
+      "patch_duration": 0.024753808975219727,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 43,
+      "timestamp": "2025-11-17T14:07:41.617405",
+      "patch_duration": 0.04610109329223633,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 31,
+      "timestamp": "2025-11-17T14:07:45.721602",
+      "patch_duration": 0.054309844970703125,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 44,
+      "timestamp": "2025-11-17T14:07:48.179009",
+      "patch_duration": 0.05937790870666504,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 32,
+      "timestamp": "2025-11-17T14:07:49.792934",
+      "patch_duration": 0.039494991302490234,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 33,
+      "timestamp": "2025-11-17T14:07:51.427682",
+      "patch_duration": 0.04854297637939453,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 34,
+      "timestamp": "2025-11-17T14:07:53.031706",
+      "patch_duration": 0.050431013107299805,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 45,
+      "timestamp": "2025-11-17T14:07:55.436713",
+      "patch_duration": 0.05934309959411621,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 35,
+      "timestamp": "2025-11-17T14:07:57.946495",
+      "patch_duration": 0.04314589500427246,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": -1
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 46,
+      "timestamp": "2025-11-17T14:08:02.634718",
+      "patch_duration": 0.050589799880981445,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 36,
+      "timestamp": "2025-11-17T14:08:03.714569",
+      "patch_duration": 0.042352914810180664,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 1
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 37,
+      "timestamp": "2025-11-17T14:08:06.468911",
+      "patch_duration": 0.04622387886047363,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 38,
+      "timestamp": "2025-11-17T14:08:11.435455",
+      "patch_duration": 0.06897401809692383,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 47,
+      "timestamp": "2025-11-17T14:08:13.138292",
+      "patch_duration": 0.05190920829772949,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 48,
+      "timestamp": "2025-11-17T14:08:18.472205",
+      "patch_duration": 0.058808088302612305,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 49,
+      "timestamp": "2025-11-17T14:08:19.781680",
+      "patch_duration": 0.055216073989868164,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 50,
+      "timestamp": "2025-11-17T14:08:22.610392",
+      "patch_duration": 0.06731796264648438,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 51,
+      "timestamp": "2025-11-17T14:08:26.561671",
+      "patch_duration": 0.06067299842834473,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 39,
+      "timestamp": "2025-11-17T14:08:33.823908",
+      "patch_duration": 0.029539108276367188,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 40,
+      "timestamp": "2025-11-17T14:08:36.286445",
+      "patch_duration": 0.06404304504394531,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 52,
+      "timestamp": "2025-11-17T14:08:39.150734",
+      "patch_duration": 0.05541706085205078,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 41,
+      "timestamp": "2025-11-17T14:08:43.455139",
+      "patch_duration": 0.04678702354431152,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 42,
+      "timestamp": "2025-11-17T14:08:45.916339",
+      "patch_duration": 0.0510411262512207,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": -1
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 53,
+      "timestamp": "2025-11-17T14:08:47.273340",
+      "patch_duration": 0.061224937438964844,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 54,
+      "timestamp": "2025-11-17T14:08:48.872450",
+      "patch_duration": 0.04943585395812988,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 43,
+      "timestamp": "2025-11-17T14:08:51.899578",
+      "patch_duration": 0.04878592491149902,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 1
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 55,
+      "timestamp": "2025-11-17T14:08:53.292244",
+      "patch_duration": 0.06067919731140137,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 44,
+      "timestamp": "2025-11-17T14:09:00.268268",
+      "patch_duration": 0.04830479621887207,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 45,
+      "timestamp": "2025-11-17T14:09:04.547752",
+      "patch_duration": 0.04404592514038086,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 56,
+      "timestamp": "2025-11-17T14:09:10.937845",
+      "patch_duration": 0.06399106979370117,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 46,
+      "timestamp": "2025-11-17T14:09:13.670487",
+      "patch_duration": 0.05356860160827637,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 47,
+      "timestamp": "2025-11-17T14:09:16.711187",
+      "patch_duration": 0.04040980339050293,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 57,
+      "timestamp": "2025-11-17T14:09:17.899389",
+      "patch_duration": 0.040099143981933594,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 48,
+      "timestamp": "2025-11-17T14:09:20.458138",
+      "patch_duration": 0.05105090141296387,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": -1
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 49,
+      "timestamp": "2025-11-17T14:09:21.666781",
+      "patch_duration": 0.04785776138305664,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 1
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 50,
+      "timestamp": "2025-11-17T14:09:26.429543",
+      "patch_duration": 0.05095028877258301,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 51,
+      "timestamp": "2025-11-17T14:09:27.767290",
+      "patch_duration": 0.04246401786804199,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "atomic",
+      "collection_id": "collection.1763406275705",
+      "update_counter": 52,
+      "timestamp": "2025-11-17T14:09:29.777314",
+      "patch_duration": 0.038877010345458984,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": -1
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763406276103",
+      "update_counter": 58,
+      "timestamp": "2025-11-17T14:09:32.588943",
+      "patch_duration": 0.061660051345825195,
+      "patch_collection_ocfl_count_delta": 0,
+      "patch_collection_ocfl_directories_delta": 0,
+      "patch_collection_ocfl_size_delta": 0
+    }
+  ]
+}

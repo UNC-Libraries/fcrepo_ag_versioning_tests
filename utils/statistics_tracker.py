@@ -12,13 +12,13 @@ class StatisticsTracker:
     Tracks statistics about file counts, sizes, and response performance
     """
     
-    def __init__(self):
+    def __init__(self, results_dir="results"):
         self.responses: List[Dict] = []
         self.creations: List[Dict] = []
         self.workflows: List[Dict] = []
         self.file_count = 0
         self.total_size = 0
-        self.results_dir = "results"
+        self.results_dir = results_dir
         
         # Ensure results directory exists
         os.makedirs(self.results_dir, exist_ok=True)

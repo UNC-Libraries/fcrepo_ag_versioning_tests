@@ -13,8 +13,21 @@ class StatsAnalyzer:
     Load and analyze statistics from previous test runs
     """
     
-    def __init__(self, results_dir="results"):
-        self.results_dir = results_dir
+    def __init__(self, results_dir="results", config_name=None):
+        """
+        Initialize the analyzer
+        
+        Args:
+            results_dir: Base results directory
+            config_name: Optional specific config subdirectory to analyze.
+                        If None, uses TEST_CONFIG_NAME env var, defaults to "default"
+        """
+        # If no config_name provided, check environment variable
+        if config_name is None:
+            config_name = os.getenv("TEST_CONFIG_NAME", "default")
+        
+        self.results_dir = os.path.join(results_dir, config_name)
+        self.config_name = config_name
     
     def list_available_runs(self) -> List[str]:
         """
@@ -25,7 +38,8 @@ class StatsAnalyzer:
         """
         pattern = os.path.join(self.results_dir, "stats_*.json")
         files = glob(pattern)
-        return sorted([os.path.basename(f) for f in files])
+        # Return relative paths from results_dir
+        return sorted([os.path.relpath(f, self.results_dir) for f in files])
     
     def load_run(self, filename: str) -> Dict:
         """
@@ -72,12 +86,12 @@ class StatsAnalyzer:
             data: Statistics data from a run
             
         Returns:
-            Dictionary with analysis of normal vs AG collections
+            Dictionary with analysis of atomic vs AG collections
         """
         workflows = data.get("workflows", [])
         
-        normal_patches = [w for w in workflows if w.get("operation") == "patch_collection" 
-                         and w.get("collection_type") == "normal"]
+        atomic_patches = [w for w in workflows if w.get("operation") == "patch_collection" 
+                         and w.get("collection_type") == "atomic"]
         ag_patches = [w for w in workflows if w.get("operation") == "patch_collection" 
                      and w.get("collection_type") == "archival_group"]
         
@@ -135,21 +149,119 @@ class StatsAnalyzer:
             }
         
         return {
-            "normal_collection": analyze_patches(normal_patches),
+            "atomic_collection": analyze_patches(atomic_patches),
             "archival_group_collection": analyze_patches(ag_patches)
         }
-    
-    def print_comparison(self, data: Dict):
+
+    def analyze_creations(self, creations):
+        if not creations:
+            return {}
+        
+        return {
+            "count": len(creations),
+            "avg_workflow_duration": sum(c.get("workflow_duration", 0) for c in creations) / len(creations),
+            "avg_commit_duration": sum(c.get("commit_duration", 0) for c in creations) / len(creations),
+            "avg_file_count_delta": sum(c.get("create_collection_ocfl_count_delta", 0) for c in creations) / len(creations),
+            "avg_dir_count_delta": sum(c.get("create_collection_ocfl_directories_delta", 0) for c in creations) / len(creations),
+            "avg_size_delta": sum(c.get("create_collection_ocfl_size_delta", 0) for c in creations) / len(creations),
+            "total_file_count_delta": sum(c.get("create_collection_ocfl_count_delta", 0) for c in creations),
+            "total_dir_count_delta": sum(c.get("create_collection_ocfl_directories_delta", 0) for c in creations),
+            "total_size_delta": sum(c.get("create_collection_ocfl_size_delta", 0) for c in creations),
+        }
+
+    def compare_creation_operations(self, data: Dict) -> Dict:
         """
-        Print a formatted comparison of normal vs AG collection performance
+        Analyze collection creation operations from a run
+        
+        Args:
+            data: Statistics data from a run
+            
+        Returns:
+            Dictionary with analysis of atomic vs AG collection creation
+        """
+        workflows = data.get("workflows", [])
+        
+        atomic_creations = [w for w in workflows if w.get("operation") == "create_collection" 
+                           and w.get("collection_type") == "atomic"]
+        ag_creations = [w for w in workflows if w.get("operation") == "create_collection" 
+                       and w.get("collection_type") == "archival_group"]
+
+        return {
+            "atomic_collection": self.analyze_creations(atomic_creations),
+            "archival_group_collection": self.analyze_creations(ag_creations)
+        }
+    
+    def print_creation_comparison(self, data: Dict):
+        """
+        Print a formatted comparison of atomic vs AG collection creation
         
         Args:
             data: Statistics data from a run
         """
+        comparison = self.compare_creation_operations(data)
+        
+        print("\n" + "=" * 70)
+        print("COLLECTION CREATION COMPARISON: atomic vs Archival Group")
+        print("=" * 70)
+        
+        for coll_type, stats in comparison.items():
+            if not stats:
+                continue
+                
+            print(f"\n{coll_type.replace('_', ' ').title()}:")
+            print(f"  Collections Created: {stats['count']}")
+            print(f"  Avg Workflow Duration: {stats['avg_workflow_duration']:.4f}s")
+            print(f"  Avg Commit Duration: {stats['avg_commit_duration']:.4f}s")
+            print(f"  Avg File Count Delta: {stats['avg_file_count_delta']:.2f}")
+            print(f"  Avg Directory Count Delta: {stats['avg_dir_count_delta']:.2f}")
+            print(f"  Avg Size Delta: {stats['avg_size_delta']:.2f} bytes ({stats['avg_size_delta']/1024:.2f} KB)")
+            print(f"  Total Files Created: {stats['total_file_count_delta']}")
+            print(f"  Total Directories Created: {stats['total_dir_count_delta']}")
+            print(f"  Total Size: {stats['total_size_delta']:,.0f} bytes ({stats['total_size_delta']/1024:,.1f} KB)")
+        
+        # Compare if both exist
+        if comparison.get("atomic_collection") and comparison.get("archival_group_collection"):
+            print("\n" + "-" * 70)
+            print("COMPARISON:")
+            atomic = comparison["atomic_collection"]
+            ag = comparison["archival_group_collection"]
+            
+            workflow_diff = ((ag["avg_workflow_duration"] - atomic["avg_workflow_duration"]) / atomic["avg_workflow_duration"]) * 100
+            commit_diff = ((ag["avg_commit_duration"] - atomic["avg_commit_duration"]) / atomic["avg_commit_duration"]) * 100
+            file_diff = ((ag["avg_file_count_delta"] - atomic["avg_file_count_delta"]) / atomic["avg_file_count_delta"]) * 100 if atomic["avg_file_count_delta"] > 0 else 0
+            dir_diff = ((ag["avg_dir_count_delta"] - atomic["avg_dir_count_delta"]) / atomic["avg_dir_count_delta"]) * 100 if atomic["avg_dir_count_delta"] > 0 else 0
+            size_diff = ((ag["avg_size_delta"] - atomic["avg_size_delta"]) / atomic["avg_size_delta"]) * 100 if atomic["avg_size_delta"] > 0 else 0
+            
+            print(f"  AG Workflow Duration vs atomic: {workflow_diff:+.1f}%")
+            print(f"  AG Commit Duration vs atomic: {commit_diff:+.1f}%")
+            print(f"  AG File Count Delta vs atomic: {file_diff:+.1f}%")
+            print(f"  AG Directory Count Delta vs atomic: {dir_diff:+.1f}%")
+            print(f"  AG Size Delta vs atomic: {size_diff:+.1f}%")
+            
+            print(f"\n  Absolute Differences (AG - atomic):")
+            print(f"    Workflow Duration: {(ag['avg_workflow_duration'] - atomic['avg_workflow_duration']):+.4f}s")
+            print(f"    Commit Duration: {(ag['avg_commit_duration'] - atomic['avg_commit_duration']):+.4f}s")
+            print(f"    File Count Delta: {(ag['avg_file_count_delta'] - atomic['avg_file_count_delta']):+.2f} files")
+            print(f"    Directory Count Delta: {(ag['avg_dir_count_delta'] - atomic['avg_dir_count_delta']):+.2f} directories")
+            print(f"    Size Delta: {(ag['avg_size_delta'] - atomic['avg_size_delta']):+.2f} bytes ({(ag['avg_size_delta'] - atomic['avg_size_delta'])/1024:+.2f} KB)")
+        
+        print("=" * 70 + "\n")
+    
+    def print_comparison(self, data: Dict):
+        """
+        Print a formatted comparison of atomic vs AG collection performance
+        
+        Args:
+            data: Statistics data from a run
+        """
+
+        # Print creation comparison first
+        self.print_creation_comparison(data)
+
         comparison = self.compare_patch_operations(data)
         
         print("\n" + "=" * 70)
-        print("PATCH OPERATION COMPARISON: Normal vs Archival Group Collections")
+        print("PATCH OPERATION COMPARISON: atomic vs Archival Group Collections")
         print("=" * 70)
         
         for coll_type, stats in comparison.items():
@@ -170,39 +282,74 @@ class StatsAnalyzer:
                 print(f"  First Patch Size Delta: {stats['first_patch_size_delta']} bytes")
                 print(f"  Last Patch Size Delta: {stats['last_patch_size_delta']} bytes")
                 if stats['count'] > 1:
-                    total_growth = stats['last_patch_size_delta'] - stats['first_patch_size_delta']
-                    print(f"  Total Growth: {total_growth} bytes over {stats['count']} updates")
+                    delta_growth = stats['last_patch_size_delta'] - stats['first_patch_size_delta']
+                    print(f"  Delta Growth: {delta_growth} bytes over {stats['count']} updates")
+                    print(f"    (i.e., each update's delta increased by ~{stats['size_growth_rate']:.2f} bytes)")
+                
+                # Expected cumulative storage after 100 updates
+                # This is an arithmetic series: sum of (first_delta + 0*growth), (first_delta + 1*growth), ..., (first_delta + 99*growth)
+                # Formula: n * first_term + growth_rate * n * (n-1) / 2
+                n = 100
+                first_delta = stats['first_patch_size_delta']
+                growth_rate = stats['size_growth_rate']
+                expected_100 = n * first_delta + growth_rate * n * (n - 1) / 2
+                print(f"  Expected Cumulative Storage After 100 Updates: {expected_100:,.0f} bytes ({expected_100/1024:,.1f} KB)")
+                print(f"    (This is the total storage added across all 100 updates)")
+        
         
         # Compare if both exist
-        if comparison.get("normal_collection") and comparison.get("archival_group_collection"):
+        if comparison.get("atomic_collection") and comparison.get("archival_group_collection"):
             print("\n" + "-" * 70)
             print("COMPARISON:")
-            normal = comparison["normal_collection"]
+            atomic = comparison["atomic_collection"]
             ag = comparison["archival_group_collection"]
             
-            duration_diff = ((ag["avg_patch_duration"] - normal["avg_patch_duration"]) / normal["avg_patch_duration"]) * 100
-            size_diff = ((ag["avg_size_delta"] - normal["avg_size_delta"]) / normal["avg_size_delta"]) * 100 if normal["avg_size_delta"] > 0 else 0
+            duration_diff = ((ag["avg_patch_duration"] - atomic["avg_patch_duration"]) / atomic["avg_patch_duration"]) * 100
+            size_diff = ((ag["avg_size_delta"] - atomic["avg_size_delta"]) / atomic["avg_size_delta"]) * 100 if atomic["avg_size_delta"] > 0 else 0
             
-            print(f"  AG Duration vs Normal: {duration_diff:+.1f}%")
-            print(f"  AG Size Delta vs Normal: {size_diff:+.1f}%")
+            print(f"  AG Duration vs atomic: {duration_diff:+.1f}%")
+            print(f"  AG Size Delta vs atomic: {size_diff:+.1f}%")
             
             # Growth rate comparison
-            if normal.get('size_growth_rate') is not None and ag.get('size_growth_rate') is not None:
-                growth_rate_diff = ((ag['size_growth_rate'] - normal['size_growth_rate']) / normal['size_growth_rate']) * 100
+            if atomic.get('size_growth_rate') is not None and ag.get('size_growth_rate') is not None:
+                growth_rate_diff = ((ag['size_growth_rate'] - atomic['size_growth_rate']) / atomic['size_growth_rate']) * 100
                 print(f"\n  Storage Growth Rate Comparison:")
-                print(f"    Normal: {normal['size_growth_rate']:.2f} bytes/update")
+                print(f"    Atomic: {atomic['size_growth_rate']:.2f} bytes/update")
                 print(f"    AG: {ag['size_growth_rate']:.2f} bytes/update")
-                print(f"    AG Growth Rate vs Normal: {growth_rate_diff:+.1f}%")
-                print(f"\n  After 100 updates, expected cumulative storage difference:")
-                cumulative_diff = (ag['size_growth_rate'] - normal['size_growth_rate']) * 100
-                print(f"    {cumulative_diff:+.0f} bytes ({cumulative_diff/1024:+.1f} KB)")
+                print(f"    AG Growth Rate vs atomic: {growth_rate_diff:+.1f}%")
+                
+                print(f"\n  Expected Cumulative Storage After 100 Updates:")
+                # Arithmetic series sum: n * first_term + growth_rate * n * (n-1) / 2
+                n = 100
+                atomic_first = atomic['first_patch_size_delta']
+                atomic_growth = atomic['size_growth_rate']
+                atomic_100 = n * atomic_first + atomic_growth * n * (n - 1) / 2
+                
+                ag_first = ag['first_patch_size_delta']
+                ag_growth = ag['size_growth_rate']
+                ag_100 = n * ag_first + ag_growth * n * (n - 1) / 2
+                
+                cumulative_diff = ag_100 - atomic_100
+                print(f"    Atomic: {atomic_100:,.0f} bytes ({atomic_100/1024:,.1f} KB)")
+                print(f"    AG: {ag_100:,.0f} bytes ({ag_100/1024:,.1f} KB)")
+                print(f"    Difference: {cumulative_diff:+,.0f} bytes ({cumulative_diff/1024:+.1f} KB)")
+        
         
         print("=" * 70 + "\n")
 
 
 if __name__ == "__main__":
     # Example usage
-    analyzer = StatsAnalyzer()
+    import sys
+    
+    # Allow specifying config name as command-line argument
+    # If not provided, uses TEST_CONFIG_NAME from environment
+    config_name = sys.argv[1] if len(sys.argv) > 1 else None
+    
+    analyzer = StatsAnalyzer(config_name=config_name)
+    
+    print(f"Analyzing config: '{analyzer.config_name}'")
+    print(f"Results directory: '{analyzer.results_dir}'")
     
     runs = analyzer.list_available_runs()
     if runs:
@@ -213,4 +360,4 @@ if __name__ == "__main__":
         data = analyzer.load_latest_run()
         analyzer.print_comparison(data)
     else:
-        print("No statistics files found in results/ directory")
+        print(f"No statistics files found in '{analyzer.results_dir}' directory")

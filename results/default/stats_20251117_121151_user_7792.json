@@ -1,0 +1,287 @@
+{
+  "summary": {
+    "total_responses": 0,
+    "total_creations": 1,
+    "total_workflows": 24,
+    "total_size_bytes": 0,
+    "average_response_time": 0.0,
+    "average_workflow_duration": 0.029781877994537354,
+    "average_commit_duration": 0.03939688205718994,
+    "timestamp": "2025-11-17T12:11:51.663000"
+  },
+  "responses": [],
+  "creations": [
+    {
+      "timestamp": "2025-11-17T12:11:25.389309",
+      "location": "http://localhost:8046/fcrepo/rest/test-resource-1763399485334",
+      "status_code": 201,
+      "response_time": 0.054172
+    }
+  ],
+  "workflows": [
+    {
+      "operation": "create_collection",
+      "collection_type": "normal",
+      "collection_id": "collection.1763399465841",
+      "timestamp": "2025-11-17T12:11:06.007379",
+      "commit_duration": 0.05444073677062988,
+      "workflow_duration": 0.1403510570526123,
+      "create_collection_ocfl_count_delta": 38,
+      "create_collection_ocfl_directories_delta": 35,
+      "create_collection_ocfl_size_delta": 19677
+    },
+    {
+      "operation": "create_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763399466032",
+      "timestamp": "2025-11-17T12:11:06.166521",
+      "commit_duration": 0.02435302734375,
+      "workflow_duration": 0.10525012016296387,
+      "create_collection_ocfl_count_delta": 15,
+      "create_collection_ocfl_directories_delta": 9,
+      "create_collection_ocfl_size_delta": 14390
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "normal",
+      "collection_id": "collection.1763399465841",
+      "update_counter": 1,
+      "timestamp": "2025-11-17T12:11:06.241622",
+      "patch_duration": 0.014698028564453125,
+      "patch_collection_ocfl_count_delta": 4,
+      "patch_collection_ocfl_directories_delta": 3,
+      "patch_collection_ocfl_size_delta": 3490
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "normal",
+      "collection_id": "collection.1763399465841",
+      "update_counter": 2,
+      "timestamp": "2025-11-17T12:11:08.295481",
+      "patch_duration": 0.016618013381958008,
+      "patch_collection_ocfl_count_delta": 4,
+      "patch_collection_ocfl_directories_delta": 3,
+      "patch_collection_ocfl_size_delta": 4289
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763399466032",
+      "update_counter": 1,
+      "timestamp": "2025-11-17T12:11:09.960776",
+      "patch_duration": 0.015233039855957031,
+      "patch_collection_ocfl_count_delta": 4,
+      "patch_collection_ocfl_directories_delta": 3,
+      "patch_collection_ocfl_size_delta": 9224
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "normal",
+      "collection_id": "collection.1763399465841",
+      "update_counter": 3,
+      "timestamp": "2025-11-17T12:11:12.907680",
+      "patch_duration": 0.013935089111328125,
+      "patch_collection_ocfl_count_delta": 4,
+      "patch_collection_ocfl_directories_delta": 3,
+      "patch_collection_ocfl_size_delta": 5088
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763399466032",
+      "update_counter": 2,
+      "timestamp": "2025-11-17T12:11:14.566893",
+      "patch_duration": 0.01822805404663086,
+      "patch_collection_ocfl_count_delta": 4,
+      "patch_collection_ocfl_directories_delta": 3,
+      "patch_collection_ocfl_size_delta": 11457
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763399466032",
+      "update_counter": 3,
+      "timestamp": "2025-11-17T12:11:18.139089",
+      "patch_duration": 0.03301668167114258,
+      "patch_collection_ocfl_count_delta": 4,
+      "patch_collection_ocfl_directories_delta": 3,
+      "patch_collection_ocfl_size_delta": 13690
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "normal",
+      "collection_id": "collection.1763399465841",
+      "update_counter": 4,
+      "timestamp": "2025-11-17T12:11:20.978572",
+      "patch_duration": 0.020787954330444336,
+      "patch_collection_ocfl_count_delta": 4,
+      "patch_collection_ocfl_directories_delta": 3,
+      "patch_collection_ocfl_size_delta": 5887
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763399466032",
+      "update_counter": 4,
+      "timestamp": "2025-11-17T12:11:22.811115",
+      "patch_duration": 0.01830887794494629,
+      "patch_collection_ocfl_count_delta": 4,
+      "patch_collection_ocfl_directories_delta": 3,
+      "patch_collection_ocfl_size_delta": 15923
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763399466032",
+      "update_counter": 5,
+      "timestamp": "2025-11-17T12:11:24.041008",
+      "patch_duration": 0.02137136459350586,
+      "patch_collection_ocfl_count_delta": 4,
+      "patch_collection_ocfl_directories_delta": 3,
+      "patch_collection_ocfl_size_delta": 18156
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763399466032",
+      "update_counter": 6,
+      "timestamp": "2025-11-17T12:11:27.055546",
+      "patch_duration": 0.01740884780883789,
+      "patch_collection_ocfl_count_delta": 4,
+      "patch_collection_ocfl_directories_delta": 3,
+      "patch_collection_ocfl_size_delta": 20389
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763399466032",
+      "update_counter": 7,
+      "timestamp": "2025-11-17T12:11:28.914642",
+      "patch_duration": 0.018526315689086914,
+      "patch_collection_ocfl_count_delta": 4,
+      "patch_collection_ocfl_directories_delta": 3,
+      "patch_collection_ocfl_size_delta": 22622
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763399466032",
+      "update_counter": 8,
+      "timestamp": "2025-11-17T12:11:30.249191",
+      "patch_duration": 0.02344822883605957,
+      "patch_collection_ocfl_count_delta": 4,
+      "patch_collection_ocfl_directories_delta": 3,
+      "patch_collection_ocfl_size_delta": 24855
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "normal",
+      "collection_id": "collection.1763399465841",
+      "update_counter": 5,
+      "timestamp": "2025-11-17T12:11:34.868609",
+      "patch_duration": 0.028162002563476562,
+      "patch_collection_ocfl_count_delta": 4,
+      "patch_collection_ocfl_directories_delta": 3,
+      "patch_collection_ocfl_size_delta": 6686
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763399466032",
+      "update_counter": 9,
+      "timestamp": "2025-11-17T12:11:36.471112",
+      "patch_duration": 0.015946149826049805,
+      "patch_collection_ocfl_count_delta": 4,
+      "patch_collection_ocfl_directories_delta": 3,
+      "patch_collection_ocfl_size_delta": 27096
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763399466032",
+      "update_counter": 10,
+      "timestamp": "2025-11-17T12:11:38.614764",
+      "patch_duration": 0.016916275024414062,
+      "patch_collection_ocfl_count_delta": 4,
+      "patch_collection_ocfl_directories_delta": 3,
+      "patch_collection_ocfl_size_delta": 29332
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763399466032",
+      "update_counter": 11,
+      "timestamp": "2025-11-17T12:11:40.795014",
+      "patch_duration": 0.03010082244873047,
+      "patch_collection_ocfl_count_delta": 4,
+      "patch_collection_ocfl_directories_delta": 3,
+      "patch_collection_ocfl_size_delta": 31568
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "normal",
+      "collection_id": "collection.1763399465841",
+      "update_counter": 6,
+      "timestamp": "2025-11-17T12:11:42.824905",
+      "patch_duration": 0.01665210723876953,
+      "patch_collection_ocfl_count_delta": 4,
+      "patch_collection_ocfl_directories_delta": 3,
+      "patch_collection_ocfl_size_delta": 7485
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "normal",
+      "collection_id": "collection.1763399465841",
+      "update_counter": 7,
+      "timestamp": "2025-11-17T12:11:43.953995",
+      "patch_duration": 0.021728992462158203,
+      "patch_collection_ocfl_count_delta": 4,
+      "patch_collection_ocfl_directories_delta": 3,
+      "patch_collection_ocfl_size_delta": 8280
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "archival_group",
+      "collection_id": "ag_collection.1763399466032",
+      "update_counter": 12,
+      "timestamp": "2025-11-17T12:11:45.228821",
+      "patch_duration": 0.06459188461303711,
+      "patch_collection_ocfl_count_delta": 4,
+      "patch_collection_ocfl_directories_delta": 3,
+      "patch_collection_ocfl_size_delta": 33804
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "normal",
+      "collection_id": "collection.1763399465841",
+      "update_counter": 8,
+      "timestamp": "2025-11-17T12:11:46.887711",
+      "patch_duration": 0.014742136001586914,
+      "patch_collection_ocfl_count_delta": 4,
+      "patch_collection_ocfl_directories_delta": 3,
+      "patch_collection_ocfl_size_delta": 9081
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "normal",
+      "collection_id": "collection.1763399465841",
+      "update_counter": 9,
+      "timestamp": "2025-11-17T12:11:49.444075",
+      "patch_duration": 0.014782905578613281,
+      "patch_collection_ocfl_count_delta": 4,
+      "patch_collection_ocfl_directories_delta": 3,
+      "patch_collection_ocfl_size_delta": 9888
+    },
+    {
+      "operation": "patch_collection",
+      "collection_type": "normal",
+      "collection_id": "collection.1763399465841",
+      "update_counter": 10,
+      "timestamp": "2025-11-17T12:11:51.075764",
+      "patch_duration": 0.013960123062133789,
+      "patch_collection_ocfl_count_delta": 4,
+      "patch_collection_ocfl_directories_delta": 3,
+      "patch_collection_ocfl_size_delta": 10690
+    }
+  ]
+}

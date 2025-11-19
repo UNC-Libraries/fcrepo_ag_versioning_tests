@@ -44,7 +44,11 @@ class FcrepoUser(HttpUser):
         Called when a simulated user starts
         Initialize any necessary state or authentication
         """
-        self.stats_tracker = StatisticsTracker()
+        # Allow configuration-specific result directories
+        config_name = os.getenv("TEST_CONFIG_NAME", "default")
+        results_subdir = os.path.join("results", config_name)
+
+        self.stats_tracker = StatisticsTracker(results_dir=results_subdir)
         # Register this tracker for saving on exit
         _all_stats_trackers.append(self.stats_tracker)
         
@@ -55,7 +59,7 @@ class FcrepoUser(HttpUser):
         # Track created collections and their update counters
         self.created_collections = []
         self.collection_counters = {}
-        self.normal_collection = None
+        self.atomic_collection = None
         self.ag_collection = None
         
         # Set up authentication if credentials are provided
@@ -67,7 +71,7 @@ class FcrepoUser(HttpUser):
         else:
             self.auth = None
         
-        # Create both a normal collection and an archival group collection
+        # Create both a atomic collection and an archival group collection
         self.create_collection_with_transaction(is_archival_group=False)
         self.create_collection_with_transaction(is_archival_group=True)
 
@@ -280,7 +284,7 @@ class FcrepoUser(HttpUser):
             # Record statistics
             self.stats_tracker.record_workflow({
                 "operation": "create_collection",
-                "collection_type": "archival_group" if is_archival_group else "normal",
+                "collection_type": "archival_group" if is_archival_group else "atomic",
                 "collection_id": collection_slug,
                 "timestamp": timestamp,
                 "commit_duration": commit_duration,
@@ -294,11 +298,11 @@ class FcrepoUser(HttpUser):
             self.created_collections.append(collection_slug)
             self.collection_counters[collection_slug] = 0
             
-            # Store reference to normal or AG collection
+            # Store reference to atomic or AG collection
             if is_archival_group:
                 self.ag_collection = collection_slug
             else:
-                self.normal_collection = collection_slug
+                self.atomic_collection = collection_slug
             
         except Exception as e:
             print(f"Error in collection creation workflow: {e}")
@@ -354,7 +358,7 @@ WHERE {{ }}"""
         dir_count_delta = final_dir_count - initial_dir_count
         size_delta = final_total_size - initial_total_size
         
-        collection_type = "AG" if collection_slug.startswith("ag_") else "Normal"
+        collection_type = "AG" if collection_slug.startswith("ag_") else "Atomic"
         print(f"✓ Patched {collection_type} {collection_slug} (update #{counter})")
         print(f"  - Patch time: {patch_duration:.3f}s")
         print(f"  - OCFL file count delta: {file_count_delta}")
@@ -364,7 +368,7 @@ WHERE {{ }}"""
         # Record statistics
         self.stats_tracker.record_workflow({
             "operation": "patch_collection",
-            "collection_type": "archival_group" if collection_slug.startswith("ag_") else "normal",
+            "collection_type": "archival_group" if collection_slug.startswith("ag_") else "atomic",
             "collection_id": collection_slug,
             "update_counter": counter,
             "timestamp": time.time(),
@@ -375,14 +379,14 @@ WHERE {{ }}"""
         })
 
     @task(10)
-    def patch_normal_collection_property(self):
+    def patch_atomic_collection_property(self):
         """
-        PATCH request to update a property on a normal collection
+        PATCH request to update a property on a atomic collection
         """
-        if not self.normal_collection:
+        if not self.atomic_collection:
             return
         
-        self._patch_collection_property(self.normal_collection, "PATCH Collection Property")
+        self._patch_collection_property(self.atomic_collection, "PATCH Collection Property")
     
     @task(10)
     def patch_ag_collection_property(self):
