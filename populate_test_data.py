@@ -50,6 +50,7 @@ class FcrepoDataPopulator:
         self.failed_count = 0
         self.ag_count = 0
         self.atomic_count = 0
+        self.child_count = 0
         self.start_time = None
         self.created_resources = []
     
@@ -97,6 +98,71 @@ class FcrepoDataPopulator:
         except requests.exceptions.RequestException as e:
             return False, f"Error creating resource {index}: {str(e)}", None
     
+    def create_child_resource(self, parent_uri: str, child_index: int) -> Tuple[bool, str]:
+        """
+        Create a child resource within a parent resource
+        
+        Args:
+            parent_uri: URI of the parent resource
+            child_index: Index of the child for slug generation
+            
+        Returns:
+            Tuple of (success, message)
+        """
+        timestamp = round(time.time() * 1000)
+        slug = f"child-resource-{child_index}-{timestamp}"
+        
+        try:
+            response = self.session.post(
+                parent_uri,
+                headers={"Slug": slug},
+                timeout=30
+            )
+            
+            if response.status_code == 201:
+                self.child_count += 1
+                return True, f"Created child {child_index}"
+            else:
+                return False, f"Failed to create child {child_index}: HTTP {response.status_code}"
+                
+        except requests.exceptions.RequestException as e:
+            return False, f"Error creating child {child_index}: {str(e)}"
+    
+    def create_resource_with_children(self, index: int) -> Tuple[bool, str, Optional[str]]:
+        """
+        Create a resource and its child resources
+        50% of the time creates 0 children, 50% creates 1-10 children
+        
+        Args:
+            index: Resource index number
+            
+        Returns:
+            Tuple of (success, message, resource_uri)
+        """
+        # Create parent resource
+        success, message, resource_uri = self.create_resource(index)
+        
+        if not success:
+            return success, message, resource_uri
+        
+        # Determine number of children: 50% chance of 0, 50% chance of 1-10
+        if random.random() < 0.5:
+            num_children = 0
+        else:
+            num_children = random.randint(1, 10)
+        
+        # Create children
+        children_created = 0
+        for i in range(1, num_children + 1):
+            child_success, child_message = self.create_child_resource(resource_uri, i)
+            if child_success:
+                children_created += 1
+        
+        if num_children > 0:
+            message += f" (with {children_created}/{num_children} children)"
+        
+        return success, message, resource_uri
+    
     def populate(
         self,
         num_resources: int,
@@ -123,7 +189,7 @@ class FcrepoDataPopulator:
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             # Submit all tasks
             futures = {
-                executor.submit(self.create_resource, i): i 
+                executor.submit(self.create_resource_with_children, i): i 
                 for i in range(1, num_resources + 1)
             }
             
@@ -159,12 +225,14 @@ class FcrepoDataPopulator:
         print(f"\n{'='*60}")
         print(f"Population Summary")
         print(f"{'='*60}")
-        print(f"Successfully created: {self.created_count}")
+        print(f"Successfully created: {self.created_count} parent resources")
         print(f"  - Archival Groups: {self.ag_count}")
         print(f"  - Atomic Resources: {self.atomic_count}")
+        print(f"Child resources created: {self.child_count}")
+        print(f"Total resources: {self.created_count + self.child_count}")
         print(f"Failed: {self.failed_count}")
         print(f"Total time: {elapsed:.2f} seconds")
-        print(f"Average rate: {self.created_count / elapsed:.2f} resources/sec")
+        print(f"Average rate: {(self.created_count + self.child_count) / elapsed:.2f} resources/sec")
         print(f"{'='*60}\n")
 
 
