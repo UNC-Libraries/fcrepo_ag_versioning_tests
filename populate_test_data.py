@@ -59,6 +59,7 @@ class FcrepoDataPopulator:
         """
         Create a single resource via POST request
         50% of the time creates an Archival Group, 50% creates an Atomic Resource
+        Adds 0-4 random RDF types to each resource
         
         Args:
             index: Resource index number for slug generation
@@ -79,10 +80,23 @@ class FcrepoDataPopulator:
             slug = f"atomic-resource-{index}-{timestamp}"
             headers = {"Slug": slug}
         
+        # Determine number of additional RDF types (0-4)
+        num_types = random.randint(0, 4)
+        body = None
+        
+        if num_types > 0:
+            # Build n-triples body with RDF types
+            triples = []
+            for i in range(1, num_types + 1):
+                triples.append(f"<> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.com/test_type_{i}> .")
+            body = "\n".join(triples)
+            headers["Content-Type"] = "application/n-triples"
+        
         try:
             response = self.session.post(
                 self.full_path,
                 headers=headers,
+                data=body,
                 timeout=30
             )
             
