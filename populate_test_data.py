@@ -51,6 +51,7 @@ class FcrepoDataPopulator:
         self.ag_count = 0
         self.atomic_count = 0
         self.child_count = 0
+        self.update_count = 0
         self.start_time = None
         self.created_resources = []
     
@@ -98,7 +99,7 @@ class FcrepoDataPopulator:
         except requests.exceptions.RequestException as e:
             return False, f"Error creating resource {index}: {str(e)}", None
     
-    def create_child_resource(self, parent_uri: str, child_index: int) -> Tuple[bool, str]:
+    def create_child_resource(self, parent_uri: str, child_index: int) -> Tuple[bool, str, Optional[str]]:
         """
         Create a child resource within a parent resource
         
@@ -107,7 +108,7 @@ class FcrepoDataPopulator:
             child_index: Index of the child for slug generation
             
         Returns:
-            Tuple of (success, message)
+            Tuple of (success, message, child_uri)
         """
         timestamp = round(time.time() * 1000)
         slug = f"child-resource-{child_index}-{timestamp}"
@@ -121,12 +122,73 @@ class FcrepoDataPopulator:
             
             if response.status_code == 201:
                 self.child_count += 1
-                return True, f"Created child {child_index}"
+                child_uri = response.headers.get('Location', '')
+                return True, f"Created child {child_index}", child_uri
             else:
-                return False, f"Failed to create child {child_index}: HTTP {response.status_code}"
+                return False, f"Failed to create child {child_index}: HTTP {response.status_code}", None
                 
         except requests.exceptions.RequestException as e:
-            return False, f"Error creating child {child_index}: {str(e)}"
+            return False, f"Error creating child {child_index}: {str(e)}", None, None
+    
+    def get_update_count(self) -> int:
+        """
+        Determine the number of updates for a child based on distribution:
+        70% - 0 updates, 15% - 1 update, 7% - 2 updates,
+        6% - 5 updates, 1.5% - 10 updates, 0.5% - 100 updates
+        
+        Returns:
+            Number of updates to perform
+        """
+        rand = random.random()
+        if rand < 0.70:
+            return 0
+        elif rand < 0.85:
+            return 1
+        elif rand < 0.92:
+            return 2
+        elif rand < 0.98:
+            return 5
+        elif rand < 0.995:
+            return 10
+        else:  # remaining 0.5%
+            return 100
+    
+    def update_child_resource(self, child_uri: str, update_index: int) -> Tuple[bool, str]:
+        """
+        Perform a PATCH update on a child resource using SPARQL
+        
+        Args:
+            child_uri: URI of the child resource to update
+            update_index: Index of this update (used for property value)
+            
+        Returns:
+            Tuple of (success, message)
+        """
+        # Build SPARQL update query
+        if update_index == 1:
+            # First update - just INSERT
+            sparql = f'INSERT {{ <> <http://example.com/test_property> "{update_index}" }} WHERE {{ }}'
+        else:
+            # Subsequent updates - DELETE previous, INSERT new
+            previous_value = update_index - 1
+            sparql = f'DELETE {{ <> <http://example.com/test_property> "{previous_value}" }} INSERT {{ <> <http://example.com/test_property> "{update_index}" }} WHERE {{ }}'
+        
+        try:
+            response = self.session.patch(
+                child_uri,
+                data=sparql,
+                headers={"Content-Type": "application/sparql-update"},
+                timeout=30
+            )
+            
+            if response.status_code in [200, 204]:
+                self.update_count += 1
+                return True, f"Updated (version {update_index})"
+            else:
+                return False, f"Failed to update: HTTP {response.status_code}"
+                
+        except requests.exceptions.RequestException as e:
+            return False, f"Error updating: {str(e)}"
     
     def create_resource_with_children(self, index: int) -> Tuple[bool, str, Optional[str]]:
         """
@@ -151,15 +213,28 @@ class FcrepoDataPopulator:
         else:
             num_children = random.randint(1, 10)
         
-        # Create children
+        # Create children and collect their URIs
         children_created = 0
+        child_uris = []
         for i in range(1, num_children + 1):
-            child_success, child_message = self.create_child_resource(resource_uri, i)
+            child_success, child_message, child_uri = self.create_child_resource(resource_uri, i)
             if child_success:
                 children_created += 1
+                child_uris.append(child_uri)
+        
+        # Perform updates on children based on distribution
+        updates_for_children = 0
+        for child_uri in child_uris:
+            num_updates = self.get_update_count()
+            if num_updates == 100:
+                print("🎯 CRITICAL STRIKE! 100 updates incoming!")
+            for update_idx in range(1, num_updates + 1):
+                update_success, update_message = self.update_child_resource(child_uri, update_idx)
+                if update_success:
+                    updates_for_children += 1
         
         if num_children > 0:
-            message += f" (with {children_created}/{num_children} children)"
+            message += f" (with {children_created}/{num_children} children, {updates_for_children} updates)"
         
         return success, message, resource_uri
     
@@ -229,10 +304,12 @@ class FcrepoDataPopulator:
         print(f"  - Archival Groups: {self.ag_count}")
         print(f"  - Atomic Resources: {self.atomic_count}")
         print(f"Child resources created: {self.child_count}")
+        print(f"Updates performed: {self.update_count}")
         print(f"Total resources: {self.created_count + self.child_count}")
+        print(f"Total operations: {self.created_count + self.child_count + self.update_count}")
         print(f"Failed: {self.failed_count}")
         print(f"Total time: {elapsed:.2f} seconds")
-        print(f"Average rate: {(self.created_count + self.child_count) / elapsed:.2f} resources/sec")
+        print(f"Average rate: {(self.created_count + self.child_count + self.update_count) / elapsed:.2f} operations/sec")
         print(f"{'='*60}\n")
 
 
