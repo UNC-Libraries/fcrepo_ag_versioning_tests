@@ -4,6 +4,8 @@ Creates resources via API calls to build a test dataset for performance testing.
 """
 import argparse
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 import time
 import sys
 import random
@@ -20,7 +22,7 @@ class FcrepoDataPopulator:
     """
     Handles creation of test data in a Fedora Repository instance
     """
-    
+
     def __init__(
         self,
         base_url: str,
@@ -30,7 +32,7 @@ class FcrepoDataPopulator:
     ):
         """
         Initialize the data populator
-        
+
         Args:
             base_url: Base URL of the fcrepo instance (e.g., http://localhost:8080)
             base_path: Base path for API endpoints (default: /fcrepo/rest)
@@ -41,16 +43,39 @@ class FcrepoDataPopulator:
         self.base_path = base_path
         self.full_path = f"{self.base_url}{self.base_path}"
         self.auth = (username, password) if username and password else None
+
+        # Configure session with connection pooling and keep-alive settings
         self.session = requests.Session()
+
+        # Configure HTTPAdapter with connection pooling
+        adapter = HTTPAdapter(
+            pool_connections=20,  # Number of connection pools to cache
+            pool_maxsize=20,      # Maximum number of connections to save in the pool
+            max_retries=Retry(
+                total=3,
+                backoff_factor=0.3,
+                status_forcelist=[500, 502, 503, 504]
+            )
+        )
+        self.session.mount('http://', adapter)
+        self.session.mount('https://', adapter)
+
+        # Set keep-alive and connection headers
+        self.session.headers.update({
+            'Connection': 'keep-alive',
+            'Keep-Alive': 'timeout=30, max=1000'
+        })
+
         if self.auth:
             self.session.auth = self.auth
-        
+
         # Statistics tracking
         self.created_count = 0
         self.failed_count = 0
         self.ag_count = 0
         self.atomic_count = 0
         self.child_count = 0
+        self.binary_count = 0
         self.update_count = 0
         self.link_count = 0
         self.delete_count = 0
@@ -59,22 +84,22 @@ class FcrepoDataPopulator:
         self.membership_resource_count = 0
         self.start_time = None
         self.created_resources = []
-    
+
     def create_resource(self, index: Union[int, str]) -> Tuple[bool, str, Optional[str]]:
         """
         Create a single resource via POST request
         50% of the time creates an Archival Group, 50% creates an Atomic Resource
         Adds 0-4 random RDF types to each resource
-        
+
         Args:
             index: Resource index number or identifier for slug generation
-            
+
         Returns:
             Tuple of (success, message, resource_uri)
         """
         timestamp = round(time.time() * 1000)
         is_archival_group = random.random() < 0.5
-        
+
         if is_archival_group:
             slug = f"ag-resource-{index}-{timestamp}"
             headers = {
@@ -84,19 +109,19 @@ class FcrepoDataPopulator:
         else:
             slug = f"atomic-resource-{index}-{timestamp}"
             headers = {"Slug": slug}
-        
+
         # Determine number of additional RDF types (0-4)
         num_types = random.randint(0, 4)
         body = None
-        
+
         if num_types > 0:
             # Build n-triples body with RDF types
             triples = []
             for i in range(1, num_types + 1):
                 triples.append(f"<> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.com/test_type_{i}> .")
             body = "\n".join(triples)
-            headers["Content-Type"] = "application/n-triples"
-        
+            headers["Content-Type"] = "text/turtle"
+
         try:
             response = self.session.post(
                 self.full_path,
@@ -104,7 +129,7 @@ class FcrepoDataPopulator:
                 data=body,
                 timeout=30
             )
-            
+
             if response.status_code == 201:
                 resource_uri = response.headers.get('Location', '')
                 if is_archival_group:
@@ -114,134 +139,155 @@ class FcrepoDataPopulator:
                 return True, f"Created {'AG' if is_archival_group else 'atomic'} resource {index}: {slug}", resource_uri
             else:
                 return False, f"Failed to create resource {index}: HTTP {response.status_code}", None
-                
+
         except requests.exceptions.RequestException as e:
             return False, f"Error creating resource {index}: {str(e)}", None
-    
-    def create_child_resource(self, parent_uri: str, child_index: int) -> Tuple[bool, str, Optional[str]]:
+
+    def create_child_resource(self, parent_uri: str, child_index: int, create_as_binary: bool = False) -> Tuple[bool, str, Optional[str], bool]:
         """
         Create a child resource within a parent resource
-        
+
         Args:
             parent_uri: URI of the parent resource
             child_index: Index of the child for slug generation
-            
+            create_as_binary: If True, create as binary with octet-stream content
+
         Returns:
-            Tuple of (success, message, child_uri)
+            Tuple of (success, message, child_uri, is_binary)
         """
         timestamp = round(time.time() * 1000)
         slug = f"child-resource-{child_index}-{timestamp}"
-        
+
+        headers = {"Slug": slug}
+        body = None
+
+        if create_as_binary:
+            headers["Content-Type"] = "application/octet-stream"
+            body = "test data"
+
         try:
             response = self.session.post(
                 parent_uri,
-                headers={"Slug": slug},
+                headers=headers,
+                data=body,
                 timeout=30
             )
-            
+
             if response.status_code == 201:
                 self.child_count += 1
+                if create_as_binary:
+                    self.binary_count += 1
                 child_uri = response.headers.get('Location', '')
-                return True, f"Created child {child_index}", child_uri
+                return True, f"Created {'binary' if create_as_binary else 'container'} child {child_index}", child_uri, create_as_binary
             else:
-                return False, f"Failed to create child {child_index}: HTTP {response.status_code}", None
-                
+                return False, f"Failed to create child {child_index}: HTTP {response.status_code}", None, False
+
         except requests.exceptions.RequestException as e:
-            return False, f"Error creating child {child_index}: {str(e)}", None, None
-    
+            return False, f"Error creating child {child_index}: {str(e)}", None, False
+
     def create_direct_container(self, membership_resource_uri: str, container_index: int) -> Tuple[bool, str, Optional[str]]:
         """
         Create an ldp:DirectContainer within a membership resource
-        
+
         Args:
             membership_resource_uri: URI of the membership resource
             container_index: Index for slug generation
-            
+
         Returns:
             Tuple of (success, message, container_uri)
         """
         timestamp = round(time.time() * 1000)
         slug = f"direct-container-{container_index}-{timestamp}"
-        
+
         # Build n-triples body for DirectContainer configuration
         body = f"""<> <http://www.w3.org/ns/ldp#membershipResource> <{membership_resource_uri}> .
 <> <http://www.w3.org/ns/ldp#hasMemberRelation> <http://example.com/hasMember> ."""
-        
+
         try:
             response = self.session.post(
                 membership_resource_uri,
                 headers={
                     "Slug": slug,
                     "Link": '<http://www.w3.org/ns/ldp#DirectContainer>;rel="type"',
-                    "Content-Type": "application/n-triples"
+                    "Content-Type": "text/turtle"
                 },
                 data=body,
                 timeout=30
             )
-            
+
             if response.status_code == 201:
                 self.direct_container_count += 1
                 container_uri = response.headers.get('Location', '')
                 return True, f"Created DirectContainer {container_index}: {slug}", container_uri
             else:
                 return False, f"Failed to create DirectContainer {container_index}: HTTP {response.status_code}", None
-                
+
         except requests.exceptions.RequestException as e:
             return False, f"Error creating DirectContainer {container_index}: {str(e)}", None
-    
+
     def setup_direct_containers(self) -> None:
         """
         Create 5 DirectContainers with varying numbers of children:
         0, 1, 10, 100, 1000 children respectively
         """
         child_counts = [0, 1, 10, 100, 1000]
-        
+
         print(f"\n{'='*60}")
         print(f"Setting up {len(child_counts)} DirectContainers")
         print(f"Child counts: {child_counts}")
         print(f"{'='*60}\n")
-        
+
         for idx, num_children in enumerate(child_counts, 1):
             # Create membership resource
             success, message, membership_uri = self.create_resource(f"membership-{idx}")
             if not success:
                 print(f"ERROR: Failed to create membership resource {idx}: {message}")
                 continue
-            
+
             self.membership_resource_count += 1
             print(f"Created membership resource {idx}: {membership_uri}")
-            
+
             # Create DirectContainer
             success, message, container_uri = self.create_direct_container(membership_uri, idx)
             if not success:
                 print(f"ERROR: {message}")
                 continue
-            
+
             print(f"Created DirectContainer {idx}: {container_uri}")
-            
+
             # Create children in the DirectContainer
             children_created = 0
+            child_uris = []
             for child_idx in range(1, num_children + 1):
-                child_success, child_message, child_uri = self.create_child_resource(container_uri, child_idx)
+                child_success, child_message, child_uri, is_binary = self.create_child_resource(container_uri, child_idx)
                 if child_success:
                     children_created += 1
+                    child_uris.append(child_uri)
                     if children_created % 100 == 0:
                         print(f"  Progress: {children_created}/{num_children} children created")
-            
-            print(f"DirectContainer {idx} completed with {children_created}/{num_children} children\n")
-        
+
+            # Delete 10% of children (each child has 10% chance)
+            deletions = 0
+            for child_uri in child_uris:
+                if random.random() < 0.1:
+                    delete_success, delete_message = self.delete_child_resource(child_uri)
+                    if delete_success:
+                        deletions += 1
+
+            print(f"DirectContainer {idx} completed with {children_created}/{num_children} children ({deletions} deleted)\n")
+
         print(f"{'='*60}")
         print(f"DirectContainer setup complete")
         print(f"Total DirectContainers: {self.direct_container_count}")
         print(f"Total membership resources: {self.membership_resource_count}")
         print(f"{'='*60}\n")
-    
+
     def get_update_count(self) -> int:
         """
         Determine the number of updates for a child based on distribution:
         70% - 0 updates, 15% - 1 update, 7% - 2 updates,
         6% - 5 updates, 1.5% - 10 updates, 0.5% - 100 updates
-        
+
         Returns:
             Number of updates to perform
         """
@@ -258,12 +304,12 @@ class FcrepoDataPopulator:
             return 10
         else:  # remaining 0.5%
             return 100
-    
+
     def get_link_count(self) -> int:
         """
         Determine the number of links for a child based on distribution:
         70% - 0 links, 20% - 1 link, 8% - 2 links, 2% - 5 links
-        
+
         Returns:
             Number of links to create
         """
@@ -276,15 +322,15 @@ class FcrepoDataPopulator:
             return 2
         else:  # remaining 2%
             return 5
-    
+
     def update_child_resource(self, child_uri: str, update_index: int) -> Tuple[bool, str]:
         """
         Perform a PATCH update on a child resource using SPARQL
-        
+
         Args:
             child_uri: URI of the child resource to update
             update_index: Index of this update (used for property value)
-            
+
         Returns:
             Tuple of (success, message)
         """
@@ -296,7 +342,7 @@ class FcrepoDataPopulator:
             # Subsequent updates - DELETE previous, INSERT new
             previous_value = update_index - 1
             sparql = f'DELETE {{ <> <http://example.com/test_property> "{previous_value}" }} INSERT {{ <> <http://example.com/test_property> "{update_index}" }} WHERE {{ }}'
-        
+
         try:
             response = self.session.patch(
                 child_uri,
@@ -304,29 +350,29 @@ class FcrepoDataPopulator:
                 headers={"Content-Type": "application/sparql-update"},
                 timeout=30
             )
-            
+
             if response.status_code in [200, 204]:
                 self.update_count += 1
                 return True, f"Updated (version {update_index})"
             else:
                 return False, f"Failed to update: HTTP {response.status_code}"
-                
+
         except requests.exceptions.RequestException as e:
             return False, f"Error updating: {str(e)}"
-    
+
     def link_child_resources(self, source_uri: str, destination_uri: str) -> Tuple[bool, str]:
         """
         Create a link from one child resource to another using SPARQL
-        
+
         Args:
             source_uri: URI of the source child resource
             destination_uri: URI of the destination child resource to link to
-            
+
         Returns:
             Tuple of (success, message)
         """
         sparql = f'INSERT {{ <> <http://example.com/linking_property> <{destination_uri}> }} WHERE {{ }}'
-        
+
         try:
             response = self.session.patch(
                 source_uri,
@@ -334,23 +380,23 @@ class FcrepoDataPopulator:
                 headers={"Content-Type": "application/sparql-update"},
                 timeout=30
             )
-            
+
             if response.status_code in [200, 204]:
                 self.link_count += 1
                 return True, f"Linked to {destination_uri}"
             else:
                 return False, f"Failed to create link: HTTP {response.status_code}"
-                
+
         except requests.exceptions.RequestException as e:
             return False, f"Error creating link: {str(e)}"
-    
+
     def delete_child_resource(self, child_uri: str) -> Tuple[bool, str]:
         """
         Delete a child resource
-        
+
         Args:
             child_uri: URI of the child resource to delete
-            
+
         Returns:
             Tuple of (success, message)
         """
@@ -359,76 +405,81 @@ class FcrepoDataPopulator:
                 child_uri,
                 timeout=30
             )
-            
+
             if response.status_code in [204, 410]:
                 self.delete_count += 1
                 return True, f"Deleted child"
             else:
                 return False, f"Failed to delete child: HTTP {response.status_code}"
-                
+
         except requests.exceptions.RequestException as e:
             return False, f"Error deleting child: {str(e)}"
-    
+
     def purge_child_resource(self, child_uri: str) -> Tuple[bool, str]:
         """
         Purge a child resource by deleting its tombstone
-        
+
         Args:
             child_uri: URI of the child resource to purge
-            
+
         Returns:
             Tuple of (success, message)
         """
         tombstone_uri = f"{child_uri}/fcr:tombstone"
-        
+
         try:
             response = self.session.delete(
                 tombstone_uri,
                 timeout=30
             )
-            
+
             if response.status_code in [204, 410]:
                 self.purge_count += 1
                 print("💀 CHILD HAS FAINTED")
                 return True, f"Purged child"
             else:
                 return False, f"Failed to purge child: HTTP {response.status_code}"
-                
+
         except requests.exceptions.RequestException as e:
             return False, f"Error purging child: {str(e)}"
-    
+
     def create_resource_with_children(self, index: int) -> Tuple[bool, str, Optional[str]]:
         """
         Create a resource and its child resources
         50% of the time creates 0 children, 50% creates 1-10 children
-        
+
         Args:
             index: Resource index number
-            
+
         Returns:
             Tuple of (success, message, resource_uri)
         """
         # Create parent resource
         success, message, resource_uri = self.create_resource(index)
-        
+
         if not success:
             return success, message, resource_uri
-        
+
         # Determine number of children: 50% chance of 0, 50% chance of 1-10
         if random.random() < 0.5:
             num_children = 0
         else:
             num_children = random.randint(1, 10)
-        
+
         # Create children and collect their URIs
         children_created = 0
         child_uris = []
+        binary_uris = set()  # Track which children are binaries
         for i in range(1, num_children + 1):
-            child_success, child_message, child_uri = self.create_child_resource(resource_uri, i)
+            # 20% chance to create as binary
+            create_as_binary = random.random() < 0.2
+            child_success, child_message, child_uri, is_binary = self.create_child_resource(resource_uri, i, create_as_binary)
             if child_success:
                 children_created += 1
                 child_uris.append(child_uri)
-        
+                if is_binary:
+                    binary_uris.add(child_uri)
+
         # Create links between children based on distribution
         links_created = 0
         if len(child_uris) > 0:
@@ -437,10 +488,12 @@ class FcrepoDataPopulator:
                 for _ in range(num_links):
                     # Randomly pick a destination child (can be the same child)
                     destination_uri = random.choice(child_uris)
-                    link_success, link_message = self.link_child_resources(child_uri, destination_uri)
+                    # If source is binary, append /fcr:metadata
+                    source_uri = f"{child_uri}/fcr:metadata" if child_uri in binary_uris else child_uri
+                    link_success, link_message = self.link_child_resources(source_uri, destination_uri)
                     if link_success:
                         links_created += 1
-        
+
         # Perform updates on children based on distribution
         updates_for_children = 0
         for child_uri in child_uris:
@@ -448,10 +501,12 @@ class FcrepoDataPopulator:
             if num_updates == 100:
                 print("🎯 CRITICAL STRIKE! 100 updates incoming!")
             for update_idx in range(1, num_updates + 1):
-                update_success, update_message = self.update_child_resource(child_uri, update_idx)
+                # If child is binary, append /fcr:metadata
+                target_uri = f"{child_uri}/fcr:metadata" if child_uri in binary_uris else child_uri
+                update_success, update_message = self.update_child_resource(target_uri, update_idx)
                 if update_success:
                     updates_for_children += 1
-        
+
         # Delete 10% of children, and purge 10% of those deletions
         # Each child has a 10% chance of deletion
         deletions_for_children = 0
@@ -466,12 +521,12 @@ class FcrepoDataPopulator:
                         purge_success, purge_message = self.purge_child_resource(child_uri)
                         if purge_success:
                             purges_for_children += 1
-        
+
         if num_children > 0:
             message += f" (with {children_created}/{num_children} children, {links_created} links, {updates_for_children} updates, {deletions_for_children} deletions)"
-        
+
         return success, message, resource_uri
-    
+
     def populate(
         self,
         num_resources: int,
@@ -480,34 +535,34 @@ class FcrepoDataPopulator:
     ) -> None:
         """
         Create resources in parallel using thread pool
-        
+
         Args:
             num_resources: Number of resources to create
             max_workers: Maximum number of parallel workers
             verbose: Whether to print progress updates
         """
         self.start_time = time.time()
-        
+
         print(f"\n{'='*60}")
         print(f"Starting creation of {num_resources} resources")
         print(f"Target: {self.full_path}")
         print(f"Workers: {max_workers}")
         print(f"Mix: 50% Archival Groups, 50% Atomic Resources")
         print(f"{'='*60}\n")
-        
+
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             # Submit all tasks
             futures = {
                 executor.submit(self.create_resource_with_children, i): i 
                 for i in range(1, num_resources + 1)
             }
-            
+
             # Process results as they complete
             for future in as_completed(futures):
                 index = futures[future]
                 try:
                     success, message, resource_uri = future.result()
-                    
+
                     if success:
                         self.created_count += 1
                         self.created_resources.append(resource_uri)
@@ -519,18 +574,18 @@ class FcrepoDataPopulator:
                         self.failed_count += 1
                         if verbose:
                             print(f"ERROR: {message}")
-                            
+
                 except Exception as e:
                     self.failed_count += 1
                     if verbose:
                         print(f"ERROR: Exception for resource {index}: {str(e)}")
-        
+
         self._print_summary()
-    
+
     def _print_summary(self) -> None:
         """Print summary statistics of the population run"""
         elapsed = time.time() - self.start_time
-        
+
         print(f"\n{'='*60}")
         print(f"Population Summary")
         print(f"{'='*60}")
@@ -540,6 +595,7 @@ class FcrepoDataPopulator:
         print(f"DirectContainers: {self.direct_container_count}")
         print(f"Membership resources: {self.membership_resource_count}")
         print(f"Child resources created: {self.child_count}")
+        print(f"  - Binaries: {self.binary_count}")
         print(f"Links created: {self.link_count}")
         print(f"Updates performed: {self.update_count}")
         print(f"Children deleted: {self.delete_count}")
@@ -603,14 +659,14 @@ def main():
         action='store_true',
         help='Set up 5 DirectContainers with 0, 1, 10, 100, 1000 children before populating resources'
     )
-    
+
     args = parser.parse_args()
-    
+
     # Validate arguments
     if args.num_resources <= 0:
         print("ERROR: Number of resources must be greater than 0")
         sys.exit(1)
-    
+
     # Initialize populator
     populator = FcrepoDataPopulator(
         base_url=args.base_url,
@@ -618,7 +674,7 @@ def main():
         username=args.username,
         password=args.password
     )
-    
+
     # Set up DirectContainers if requested
     if args.setup_containers:
         try:
@@ -626,7 +682,7 @@ def main():
         except Exception as e:
             print(f"ERROR: Failed to set up DirectContainers: {str(e)}")
             sys.exit(1)
-    
+
     # Run population
     try:
         populator.populate(
