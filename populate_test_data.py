@@ -8,7 +8,7 @@ import time
 import sys
 import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 from dotenv import load_dotenv
 import os
 
@@ -55,17 +55,19 @@ class FcrepoDataPopulator:
         self.link_count = 0
         self.delete_count = 0
         self.purge_count = 0
+        self.direct_container_count = 0
+        self.membership_resource_count = 0
         self.start_time = None
         self.created_resources = []
     
-    def create_resource(self, index: int) -> Tuple[bool, str, Optional[str]]:
+    def create_resource(self, index: Union[int, str]) -> Tuple[bool, str, Optional[str]]:
         """
         Create a single resource via POST request
         50% of the time creates an Archival Group, 50% creates an Atomic Resource
         Adds 0-4 random RDF types to each resource
         
         Args:
-            index: Resource index number for slug generation
+            index: Resource index number or identifier for slug generation
             
         Returns:
             Tuple of (success, message, resource_uri)
@@ -146,6 +148,93 @@ class FcrepoDataPopulator:
                 
         except requests.exceptions.RequestException as e:
             return False, f"Error creating child {child_index}: {str(e)}", None, None
+    
+    def create_direct_container(self, membership_resource_uri: str, container_index: int) -> Tuple[bool, str, Optional[str]]:
+        """
+        Create an ldp:DirectContainer within a membership resource
+        
+        Args:
+            membership_resource_uri: URI of the membership resource
+            container_index: Index for slug generation
+            
+        Returns:
+            Tuple of (success, message, container_uri)
+        """
+        timestamp = round(time.time() * 1000)
+        slug = f"direct-container-{container_index}-{timestamp}"
+        
+        # Build n-triples body for DirectContainer configuration
+        body = f"""<> <http://www.w3.org/ns/ldp#membershipResource> <{membership_resource_uri}> .
+<> <http://www.w3.org/ns/ldp#hasMemberRelation> <http://example.com/hasMember> ."""
+        
+        try:
+            response = self.session.post(
+                membership_resource_uri,
+                headers={
+                    "Slug": slug,
+                    "Link": '<http://www.w3.org/ns/ldp#DirectContainer>;rel="type"',
+                    "Content-Type": "application/n-triples"
+                },
+                data=body,
+                timeout=30
+            )
+            
+            if response.status_code == 201:
+                self.direct_container_count += 1
+                container_uri = response.headers.get('Location', '')
+                return True, f"Created DirectContainer {container_index}: {slug}", container_uri
+            else:
+                return False, f"Failed to create DirectContainer {container_index}: HTTP {response.status_code}", None
+                
+        except requests.exceptions.RequestException as e:
+            return False, f"Error creating DirectContainer {container_index}: {str(e)}", None
+    
+    def setup_direct_containers(self) -> None:
+        """
+        Create 5 DirectContainers with varying numbers of children:
+        0, 1, 10, 100, 1000 children respectively
+        """
+        child_counts = [0, 1, 10, 100, 1000]
+        
+        print(f"\n{'='*60}")
+        print(f"Setting up {len(child_counts)} DirectContainers")
+        print(f"Child counts: {child_counts}")
+        print(f"{'='*60}\n")
+        
+        for idx, num_children in enumerate(child_counts, 1):
+            # Create membership resource
+            success, message, membership_uri = self.create_resource(f"membership-{idx}")
+            if not success:
+                print(f"ERROR: Failed to create membership resource {idx}: {message}")
+                continue
+            
+            self.membership_resource_count += 1
+            print(f"Created membership resource {idx}: {membership_uri}")
+            
+            # Create DirectContainer
+            success, message, container_uri = self.create_direct_container(membership_uri, idx)
+            if not success:
+                print(f"ERROR: {message}")
+                continue
+            
+            print(f"Created DirectContainer {idx}: {container_uri}")
+            
+            # Create children in the DirectContainer
+            children_created = 0
+            for child_idx in range(1, num_children + 1):
+                child_success, child_message, child_uri = self.create_child_resource(container_uri, child_idx)
+                if child_success:
+                    children_created += 1
+                    if children_created % 100 == 0:
+                        print(f"  Progress: {children_created}/{num_children} children created")
+            
+            print(f"DirectContainer {idx} completed with {children_created}/{num_children} children\n")
+        
+        print(f"{'='*60}")
+        print(f"DirectContainer setup complete")
+        print(f"Total DirectContainers: {self.direct_container_count}")
+        print(f"Total membership resources: {self.membership_resource_count}")
+        print(f"{'='*60}\n")
     
     def get_update_count(self) -> int:
         """
@@ -448,16 +537,18 @@ class FcrepoDataPopulator:
         print(f"Successfully created: {self.created_count} parent resources")
         print(f"  - Archival Groups: {self.ag_count}")
         print(f"  - Atomic Resources: {self.atomic_count}")
+        print(f"DirectContainers: {self.direct_container_count}")
+        print(f"Membership resources: {self.membership_resource_count}")
         print(f"Child resources created: {self.child_count}")
         print(f"Links created: {self.link_count}")
         print(f"Updates performed: {self.update_count}")
         print(f"Children deleted: {self.delete_count}")
         print(f"  - Purged (tombstone removed): {self.purge_count}")
-        print(f"Total resources: {self.created_count + self.child_count}")
-        print(f"Total operations: {self.created_count + self.child_count + self.link_count + self.update_count + self.delete_count + self.purge_count}")
+        print(f"Total resources: {self.created_count + self.child_count + self.direct_container_count + self.membership_resource_count}")
+        print(f"Total operations: {self.created_count + self.child_count + self.link_count + self.update_count + self.delete_count + self.purge_count + self.direct_container_count + self.membership_resource_count}")
         print(f"Failed: {self.failed_count}")
         print(f"Total time: {elapsed:.2f} seconds")
-        print(f"Average rate: {(self.created_count + self.child_count + self.link_count + self.update_count + self.delete_count + self.purge_count) / elapsed:.2f} operations/sec")
+        print(f"Average rate: {(self.created_count + self.child_count + self.link_count + self.update_count + self.delete_count + self.purge_count + self.direct_container_count + self.membership_resource_count) / elapsed:.2f} operations/sec")
         print(f"{'='*60}\n")
 
 
@@ -507,6 +598,11 @@ def main():
         action='store_true',
         help='Suppress progress output (only show summary)'
     )
+    parser.add_argument(
+        '--setup-containers',
+        action='store_true',
+        help='Set up 5 DirectContainers with 0, 1, 10, 100, 1000 children before populating resources'
+    )
     
     args = parser.parse_args()
     
@@ -522,6 +618,14 @@ def main():
         username=args.username,
         password=args.password
     )
+    
+    # Set up DirectContainers if requested
+    if args.setup_containers:
+        try:
+            populator.setup_direct_containers()
+        except Exception as e:
+            print(f"ERROR: Failed to set up DirectContainers: {str(e)}")
+            sys.exit(1)
     
     # Run population
     try:
