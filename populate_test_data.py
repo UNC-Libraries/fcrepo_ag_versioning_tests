@@ -52,6 +52,7 @@ class FcrepoDataPopulator:
         self.atomic_count = 0
         self.child_count = 0
         self.update_count = 0
+        self.link_count = 0
         self.start_time = None
         self.created_resources = []
     
@@ -167,6 +168,24 @@ class FcrepoDataPopulator:
         else:  # remaining 0.5%
             return 100
     
+    def get_link_count(self) -> int:
+        """
+        Determine the number of links for a child based on distribution:
+        70% - 0 links, 20% - 1 link, 8% - 2 links, 2% - 5 links
+        
+        Returns:
+            Number of links to create
+        """
+        rand = random.random()
+        if rand < 0.70:
+            return 0
+        elif rand < 0.90:  # 70% + 20%
+            return 1
+        elif rand < 0.98:  # 90% + 8%
+            return 2
+        else:  # remaining 2%
+            return 5
+    
     def update_child_resource(self, child_uri: str, update_index: int) -> Tuple[bool, str]:
         """
         Perform a PATCH update on a child resource using SPARQL
@@ -204,6 +223,36 @@ class FcrepoDataPopulator:
         except requests.exceptions.RequestException as e:
             return False, f"Error updating: {str(e)}"
     
+    def link_child_resources(self, source_uri: str, destination_uri: str) -> Tuple[bool, str]:
+        """
+        Create a link from one child resource to another using SPARQL
+        
+        Args:
+            source_uri: URI of the source child resource
+            destination_uri: URI of the destination child resource to link to
+            
+        Returns:
+            Tuple of (success, message)
+        """
+        sparql = f'INSERT {{ <> <http://example.com/linking_property> <{destination_uri}> }} WHERE {{ }}'
+        
+        try:
+            response = self.session.patch(
+                source_uri,
+                data=sparql,
+                headers={"Content-Type": "application/sparql-update"},
+                timeout=30
+            )
+            
+            if response.status_code in [200, 204]:
+                self.link_count += 1
+                return True, f"Linked to {destination_uri}"
+            else:
+                return False, f"Failed to create link: HTTP {response.status_code}"
+                
+        except requests.exceptions.RequestException as e:
+            return False, f"Error creating link: {str(e)}"
+    
     def create_resource_with_children(self, index: int) -> Tuple[bool, str, Optional[str]]:
         """
         Create a resource and its child resources
@@ -236,6 +285,18 @@ class FcrepoDataPopulator:
                 children_created += 1
                 child_uris.append(child_uri)
         
+        # Create links between children based on distribution
+        links_created = 0
+        if len(child_uris) > 0:
+            for child_uri in child_uris:
+                num_links = self.get_link_count()
+                for _ in range(num_links):
+                    # Randomly pick a destination child (can be the same child)
+                    destination_uri = random.choice(child_uris)
+                    link_success, link_message = self.link_child_resources(child_uri, destination_uri)
+                    if link_success:
+                        links_created += 1
+        
         # Perform updates on children based on distribution
         updates_for_children = 0
         for child_uri in child_uris:
@@ -248,7 +309,7 @@ class FcrepoDataPopulator:
                     updates_for_children += 1
         
         if num_children > 0:
-            message += f" (with {children_created}/{num_children} children, {updates_for_children} updates)"
+            message += f" (with {children_created}/{num_children} children, {links_created} links, {updates_for_children} updates)"
         
         return success, message, resource_uri
     
@@ -318,12 +379,13 @@ class FcrepoDataPopulator:
         print(f"  - Archival Groups: {self.ag_count}")
         print(f"  - Atomic Resources: {self.atomic_count}")
         print(f"Child resources created: {self.child_count}")
+        print(f"Links created: {self.link_count}")
         print(f"Updates performed: {self.update_count}")
         print(f"Total resources: {self.created_count + self.child_count}")
-        print(f"Total operations: {self.created_count + self.child_count + self.update_count}")
+        print(f"Total operations: {self.created_count + self.child_count + self.link_count + self.update_count}")
         print(f"Failed: {self.failed_count}")
         print(f"Total time: {elapsed:.2f} seconds")
-        print(f"Average rate: {(self.created_count + self.child_count + self.update_count) / elapsed:.2f} operations/sec")
+        print(f"Average rate: {(self.created_count + self.child_count + self.link_count + self.update_count) / elapsed:.2f} operations/sec")
         print(f"{'='*60}\n")
 
 
