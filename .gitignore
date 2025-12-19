@@ -37,7 +37,7 @@ env/
 .env
 
 # Test results
-results/*.json
+results/*/*.json
 results/*.csv
 results/*.html
 
