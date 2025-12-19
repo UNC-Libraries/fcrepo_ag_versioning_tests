@@ -53,6 +53,8 @@ class FcrepoDataPopulator:
         self.child_count = 0
         self.update_count = 0
         self.link_count = 0
+        self.delete_count = 0
+        self.purge_count = 0
         self.start_time = None
         self.created_resources = []
     
@@ -253,6 +255,59 @@ class FcrepoDataPopulator:
         except requests.exceptions.RequestException as e:
             return False, f"Error creating link: {str(e)}"
     
+    def delete_child_resource(self, child_uri: str) -> Tuple[bool, str]:
+        """
+        Delete a child resource
+        
+        Args:
+            child_uri: URI of the child resource to delete
+            
+        Returns:
+            Tuple of (success, message)
+        """
+        try:
+            response = self.session.delete(
+                child_uri,
+                timeout=30
+            )
+            
+            if response.status_code in [204, 410]:
+                self.delete_count += 1
+                return True, f"Deleted child"
+            else:
+                return False, f"Failed to delete child: HTTP {response.status_code}"
+                
+        except requests.exceptions.RequestException as e:
+            return False, f"Error deleting child: {str(e)}"
+    
+    def purge_child_resource(self, child_uri: str) -> Tuple[bool, str]:
+        """
+        Purge a child resource by deleting its tombstone
+        
+        Args:
+            child_uri: URI of the child resource to purge
+            
+        Returns:
+            Tuple of (success, message)
+        """
+        tombstone_uri = f"{child_uri}/fcr:tombstone"
+        
+        try:
+            response = self.session.delete(
+                tombstone_uri,
+                timeout=30
+            )
+            
+            if response.status_code in [204, 410]:
+                self.purge_count += 1
+                print("💀 CHILD HAS FAINTED")
+                return True, f"Purged child"
+            else:
+                return False, f"Failed to purge child: HTTP {response.status_code}"
+                
+        except requests.exceptions.RequestException as e:
+            return False, f"Error purging child: {str(e)}"
+    
     def create_resource_with_children(self, index: int) -> Tuple[bool, str, Optional[str]]:
         """
         Create a resource and its child resources
@@ -308,8 +363,23 @@ class FcrepoDataPopulator:
                 if update_success:
                     updates_for_children += 1
         
+        # Delete 10% of children, and purge 10% of those deletions
+        # Each child has a 10% chance of deletion
+        deletions_for_children = 0
+        purges_for_children = 0
+        for child_uri in child_uris:
+            if random.random() < 0.1:  # 10% chance to delete each child
+                delete_success, delete_message = self.delete_child_resource(child_uri)
+                if delete_success:
+                    deletions_for_children += 1
+                    # 10% of deleted children should be purged
+                    if random.random() < 0.1:
+                        purge_success, purge_message = self.purge_child_resource(child_uri)
+                        if purge_success:
+                            purges_for_children += 1
+        
         if num_children > 0:
-            message += f" (with {children_created}/{num_children} children, {links_created} links, {updates_for_children} updates)"
+            message += f" (with {children_created}/{num_children} children, {links_created} links, {updates_for_children} updates, {deletions_for_children} deletions)"
         
         return success, message, resource_uri
     
@@ -381,11 +451,13 @@ class FcrepoDataPopulator:
         print(f"Child resources created: {self.child_count}")
         print(f"Links created: {self.link_count}")
         print(f"Updates performed: {self.update_count}")
+        print(f"Children deleted: {self.delete_count}")
+        print(f"  - Purged (tombstone removed): {self.purge_count}")
         print(f"Total resources: {self.created_count + self.child_count}")
-        print(f"Total operations: {self.created_count + self.child_count + self.link_count + self.update_count}")
+        print(f"Total operations: {self.created_count + self.child_count + self.link_count + self.update_count + self.delete_count + self.purge_count}")
         print(f"Failed: {self.failed_count}")
         print(f"Total time: {elapsed:.2f} seconds")
-        print(f"Average rate: {(self.created_count + self.child_count + self.link_count + self.update_count) / elapsed:.2f} operations/sec")
+        print(f"Average rate: {(self.created_count + self.child_count + self.link_count + self.update_count + self.delete_count + self.purge_count) / elapsed:.2f} operations/sec")
         print(f"{'='*60}\n")
 
 
