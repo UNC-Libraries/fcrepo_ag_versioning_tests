@@ -47,3 +47,4 @@ locust-*.log
 # OS
 .DS_Store
 Thumbs.db
+*manifest.txt

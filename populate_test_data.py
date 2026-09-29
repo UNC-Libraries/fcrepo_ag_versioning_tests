@@ -553,7 +553,7 @@ class FcrepoDataPopulator:
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             # Submit all tasks
             futures = {
-                executor.submit(self.create_resource_with_children, i): i 
+                executor.submit(self.create_resource_with_children, i): i
                 for i in range(1, num_resources + 1)
             }
 
