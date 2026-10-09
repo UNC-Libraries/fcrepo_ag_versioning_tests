@@ -4,7 +4,7 @@ Statistics tracker for recording performance metrics and resource information
 import json
 import os
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 
 class StatisticsTracker:
@@ -12,13 +12,14 @@ class StatisticsTracker:
     Tracks statistics about file counts, sizes, and response performance
     """
     
-    def __init__(self, results_dir="results"):
+    def __init__(self, results_dir="results", run_metadata=None):
         self.responses: List[Dict] = []
         self.creations: List[Dict] = []
         self.workflows: List[Dict] = []
         self.file_count = 0
         self.total_size = 0
         self.results_dir = results_dir
+        self.run_metadata = run_metadata or {}
         
         # Ensure results directory exists
         os.makedirs(self.results_dir, exist_ok=True)
@@ -66,6 +67,10 @@ class StatisticsTracker:
         """
         workflow_data["timestamp"] = datetime.now().isoformat()
         self.workflows.append(workflow_data)
+
+    def set_run_metadata(self, **metadata):
+        """Add metadata that describes the Locust run producing these records."""
+        self.run_metadata.update(metadata)
     
     def get_statistics(self) -> Dict:
         """
@@ -130,7 +135,7 @@ class StatisticsTracker:
         
         return sum(commit_durations) / len(commit_durations)
     
-    def save_statistics(self, filename: str = None):
+    def save_statistics(self, filename: Optional[str] = None):
         """
         Save statistics to a JSON file
         
@@ -138,12 +143,13 @@ class StatisticsTracker:
             filename: Optional custom filename, otherwise generates timestamped name
         """
         if filename is None:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
             filename = f"stats_{timestamp}.json"
         
         filepath = os.path.join(self.results_dir, filename)
         
         data = {
+            "run_metadata": self.run_metadata,
             "summary": self.get_statistics(),
             "responses": self.responses,
             "creations": self.creations,

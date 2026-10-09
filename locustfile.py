@@ -8,28 +8,12 @@ from dotenv import load_dotenv
 import os
 import json
 import time
-import atexit
+import uuid
 
 # Load environment variables from .env file
 load_dotenv()
 
-# Global dictionary to track all stats trackers for saving on exit
-_all_stats_trackers = []
-
-def save_all_stats():
-    """Save all statistics on program exit"""
-    print("\n=== Saving all statistics ===")
-    for tracker in _all_stats_trackers:
-        try:
-            tracker.save_statistics()
-        except Exception as e:
-            print(f"Error saving statistics: {e}")
-
-# Register the cleanup function
-atexit.register(save_all_stats)
-
-
-class FcrepoUser(HttpUser):
+class BaseFcrepoUser(HttpUser):
     """
     User class for simulating requests to Fedora Repository
     """
@@ -38,19 +22,14 @@ class FcrepoUser(HttpUser):
     
     # Wait time between tasks (in seconds)
     wait_time = between(1, 3)
+    abstract = True
     
     def on_start(self):
         """
         Called when a simulated user starts
         Initialize any necessary state or authentication
         """
-        # Allow configuration-specific result directories
-        config_name = os.getenv("TEST_CONFIG_NAME", "default")
-        results_subdir = os.path.join("results", config_name)
-
-        self.stats_tracker = StatisticsTracker(results_dir=results_subdir)
-        # Register this tracker for saving on exit
-        _all_stats_trackers.append(self.stats_tracker)
+        self.stats_tracker = self.environment.stats_tracker
         
         self.base_path = os.getenv("FCREPO_BASE_PATH", "/fcrepo/rest")
         self.test_bins_path = "/Users/bbpennel/git/boxc-ansible/workspace/test_bins/"
@@ -71,10 +50,6 @@ class FcrepoUser(HttpUser):
         else:
             self.auth = None
         
-        # Create both a atomic collection and an archival group collection
-        self.create_collection_with_transaction(is_archival_group=False)
-        self.create_collection_with_transaction(is_archival_group=True)
-
     def _create_test_binary(self, filename, timestamp):
         """
         Create a test binary file with the timestamp as content
@@ -115,7 +90,41 @@ class FcrepoUser(HttpUser):
         
         return file_count, dir_count, total_size
 
-    def create_collection_with_transaction(self, is_archival_group=False):
+    def _record_collection_workflow(
+        self,
+        collection_slug,
+        is_archival_group,
+        workflow_duration,
+        commit_duration=None,
+        storage_deltas=None,
+        success=True,
+        failure_stage=None,
+        workflow_type="collection_storage",
+    ):
+        """Record one collection creation attempt, including failed timing samples."""
+        data = {
+            "operation": "create_collection",
+            "workflow_type": workflow_type,
+            "collection_type": "archival_group" if is_archival_group else "atomic",
+            "collection_id": collection_slug,
+            "success": success,
+            "workflow_duration": workflow_duration,
+        }
+        if commit_duration is not None:
+            data["commit_duration"] = commit_duration
+        if failure_stage:
+            data["failure_stage"] = failure_stage
+        if storage_deltas:
+            data.update(storage_deltas)
+        self.stats_tracker.record_workflow(data)
+
+    def create_collection_with_transaction(
+        self,
+        is_archival_group=False,
+        measure_storage=True,
+        workflow_type="collection_storage",
+        verbose=True,
+    ):
         """
         Complete workflow: Create a collection object with metadata in a transaction
         Steps 2-5 from the requirements
@@ -124,16 +133,18 @@ class FcrepoUser(HttpUser):
         Args:
             is_archival_group: If True, creates an ArchivalGroup collection
         """
-        # Capture initial OCFL storage state
-        initial_file_count, initial_dir_count, initial_total_size = self._get_directory_stats(self.test_ocfl_path)
+        initial_file_count = initial_dir_count = initial_total_size = 0
+        if measure_storage:
+            initial_file_count, initial_dir_count, initial_total_size = self._get_directory_stats(self.test_ocfl_path)
         
-        workflow_start = time.time()
+        workflow_start = time.perf_counter()
         
         # Generate timestamp for this collection
-        timestamp = round(time.time() * 1000)
+        timestamp = f"{round(time.time() * 1000)}-{uuid.uuid4().hex}"
         collection_prefix = "ag_collection" if is_archival_group else "collection"
         collection_slug = f"{collection_prefix}.{timestamp}"
         
+        failure_stage = "open_transaction"
         try:
             # Step 2: Open transaction
             tx_response = self.client.post(
@@ -143,15 +154,18 @@ class FcrepoUser(HttpUser):
             )
             if not tx_response.ok:
                 print(f"Failed to open transaction: {tx_response.status_code}")
+                self._record_collection_workflow(collection_slug, is_archival_group, time.perf_counter() - workflow_start, success=False, failure_stage=failure_stage, workflow_type=workflow_type)
                 return
             
             # Get transaction ID from Location header
             tx_id = tx_response.headers.get("Location")
             if not tx_id:
                 print("No transaction ID in response Location header")
+                self._record_collection_workflow(collection_slug, is_archival_group, time.perf_counter() - workflow_start, success=False, failure_stage="missing_transaction_location", workflow_type=workflow_type)
                 return
             
-            print(f"Transaction opened: {tx_id}")
+            if verbose:
+                print(f"Transaction opened: {tx_id}")
             
             # Step 3: Create test binary files
             md_descriptive_file = self._create_test_binary(f"md_descriptive", timestamp)
@@ -172,6 +186,7 @@ class FcrepoUser(HttpUser):
             if is_archival_group:
                 collection_headers["Link"] = '<http://fedora.info/definitions/v4/repository#ArchivalGroup>;rel="type"'
             
+            failure_stage = "create_collection"
             collection_response = self.client.post(
                 self.base_path,
                 headers=collection_headers,
@@ -181,9 +196,11 @@ class FcrepoUser(HttpUser):
             )
             if not collection_response.ok:
                 print(f"Failed to create collection: {collection_response.status_code}")
+                self._record_collection_workflow(collection_slug, is_archival_group, time.perf_counter() - workflow_start, success=False, failure_stage=failure_stage, workflow_type=workflow_type)
                 return
             
             # 4b: Create md container
+            failure_stage = "create_md_container"
             md_response = self.client.put(
                 f"{self.base_path}/{collection_slug}/md",
                 headers={
@@ -196,9 +213,11 @@ class FcrepoUser(HttpUser):
             )
             if not md_response.ok:
                 print(f"Failed to create md: {md_response.status_code}")
+                self._record_collection_workflow(collection_slug, is_archival_group, time.perf_counter() - workflow_start, success=False, failure_stage=failure_stage, workflow_type=workflow_type)
                 return
             
             # 4c: Create md_description with external content
+            failure_stage = "create_md_description"
             md_desc_response = self.client.put(
                 f"{self.base_path}/{collection_slug}/md/md_description",
                 headers={
@@ -214,9 +233,11 @@ class FcrepoUser(HttpUser):
                 print(f"Response body: {md_desc_response.text}")
                 print(f"Response headers: {dict(md_desc_response.headers)}")
                 print(f"Failed to create md_description: {md_desc_response.status_code}")
+                self._record_collection_workflow(collection_slug, is_archival_group, time.perf_counter() - workflow_start, success=False, failure_stage=failure_stage, workflow_type=workflow_type)
                 return
             
             # 4d: Create md_description_history with external content
+            failure_stage = "create_md_description_history"
             md_hist_response = self.client.put(
                 f"{self.base_path}/{collection_slug}/md/md_description_history",
                 headers={
@@ -232,9 +253,11 @@ class FcrepoUser(HttpUser):
                 print(f"Failed to create md_description_history: {md_hist_response.status_code}")
                 print(f"Response body: {md_hist_response.text}")
                 print(f"Response headers: {dict(md_hist_response.headers)}")
+                self._record_collection_workflow(collection_slug, is_archival_group, time.perf_counter() - workflow_start, success=False, failure_stage=failure_stage, workflow_type=workflow_type)
                 return
             
             # 4e: Create event_log with external content
+            failure_stage = "create_event_log"
             event_log_response = self.client.put(
                 f"{self.base_path}/{collection_slug}/md/event_log",
                 headers={
@@ -248,51 +271,47 @@ class FcrepoUser(HttpUser):
             )
             if not event_log_response.ok:
                 print(f"Failed to create event_log: {event_log_response.status_code}")
+                self._record_collection_workflow(collection_slug, is_archival_group, time.perf_counter() - workflow_start, success=False, failure_stage=failure_stage, workflow_type=workflow_type)
                 return
             
             # Step 5: Commit transaction
-            commit_start = time.time()
+            failure_stage = "commit_transaction"
+            commit_start = time.perf_counter()
             commit_response = self.client.put(
                 tx_id,
                 auth=self.auth,
                 name="Commit Transaction"
             )
-            commit_duration = time.time() - commit_start
+            commit_duration = time.perf_counter() - commit_start
             
             if not commit_response.ok:
                 print(f"Failed to commit transaction: {commit_response.status_code}")
+                self._record_collection_workflow(collection_slug, is_archival_group, time.perf_counter() - workflow_start, commit_duration=commit_duration, success=False, failure_stage=failure_stage, workflow_type=workflow_type)
                 return
             
             # Step 6: Record total workflow time and capture final OCFL storage state
-            workflow_duration = time.time() - workflow_start
+            workflow_duration = time.perf_counter() - workflow_start
             
-            # Capture final OCFL storage state
-            final_file_count, final_dir_count, final_total_size = self._get_directory_stats(self.test_ocfl_path)
+            storage_deltas = None
+            if measure_storage:
+                final_file_count, final_dir_count, final_total_size = self._get_directory_stats(self.test_ocfl_path)
+                storage_deltas = {
+                    "create_collection_ocfl_count_delta": final_file_count - initial_file_count,
+                    "create_collection_ocfl_directories_delta": final_dir_count - initial_dir_count,
+                    "create_collection_ocfl_size_delta": final_total_size - initial_total_size,
+                }
             
-            # Calculate deltas
-            file_count_delta = final_file_count - initial_file_count
-            dir_count_delta = final_dir_count - initial_dir_count
-            size_delta = final_total_size - initial_total_size
-            
-            print(f"✓ Collection {collection_slug} created successfully")
-            print(f"  - Commit time: {commit_duration:.3f}s")
-            print(f"  - Total workflow time: {workflow_duration:.3f}s")
-            print(f"  - OCFL file count delta: {file_count_delta}")
-            print(f"  - OCFL directory count delta: {dir_count_delta}")
-            print(f"  - OCFL size delta: {size_delta} bytes")
+            if verbose:
+                print(f"Collection {collection_slug} created successfully")
+                print(f"  - Commit time: {commit_duration:.3f}s")
+                print(f"  - Total workflow time: {workflow_duration:.3f}s")
+                if storage_deltas:
+                    print(f"  - OCFL file count delta: {storage_deltas['create_collection_ocfl_count_delta']}")
+                    print(f"  - OCFL directory count delta: {storage_deltas['create_collection_ocfl_directories_delta']}")
+                    print(f"  - OCFL size delta: {storage_deltas['create_collection_ocfl_size_delta']} bytes")
             
             # Record statistics
-            self.stats_tracker.record_workflow({
-                "operation": "create_collection",
-                "collection_type": "archival_group" if is_archival_group else "atomic",
-                "collection_id": collection_slug,
-                "timestamp": timestamp,
-                "commit_duration": commit_duration,
-                "workflow_duration": workflow_duration,
-                "create_collection_ocfl_count_delta": file_count_delta,
-                "create_collection_ocfl_directories_delta": dir_count_delta,
-                "create_collection_ocfl_size_delta": size_delta
-            })
+            self._record_collection_workflow(collection_slug, is_archival_group, workflow_duration, commit_duration, storage_deltas, workflow_type=workflow_type)
             
             # Add to list of created collections for PATCH operations
             self.created_collections.append(collection_slug)
@@ -306,6 +325,7 @@ class FcrepoUser(HttpUser):
             
         except Exception as e:
             print(f"Error in collection creation workflow: {e}")
+            self._record_collection_workflow(collection_slug, is_archival_group, time.perf_counter() - workflow_start, success=False, failure_stage=failure_stage, workflow_type=workflow_type)
 
     def _patch_collection_property(self, collection_slug, operation_name):
         """
@@ -378,6 +398,14 @@ WHERE {{ }}"""
             "patch_collection_ocfl_size_delta": size_delta
         })
 
+class FcrepoUser(BaseFcrepoUser):
+    """Mixed storage-growth workload for serial or low-concurrency runs."""
+
+    def on_start(self):
+        super().on_start()
+        self.create_collection_with_transaction(is_archival_group=False)
+        self.create_collection_with_transaction(is_archival_group=True)
+
     @task(10)
     def patch_atomic_collection_property(self):
         """
@@ -439,27 +467,54 @@ WHERE {{ }}"""
             self.stats_tracker.record_creation(response)
     
     def on_stop(self):
-        """
-        Called when a simulated user stops
-        Save statistics for this user
-        """
-        if hasattr(self, 'stats_tracker'):
-            try:
-                # Generate unique filename for this user's stats
-                timestamp = time.strftime("%Y%m%d_%H%M%S")
-                user_id = id(self) % 10000  # Simple user identifier
-                filename = f"stats_{timestamp}_user_{user_id}.json"
-                self.stats_tracker.save_statistics(filename)
-            except Exception as e:
-                print(f"Error saving statistics in on_stop: {e}")
+        """Run statistics are saved once by the test-stop listener."""
+        pass
 
 
-@events.quitting.add_listener
-def on_quitting(environment, **kwargs):
-    """
-    Called when the locust process is shutting down
-    Save collected statistics
-    """
-    print("\n=== Test run completed ===")
-    print("Statistics have been saved to the results/ directory")
-    # Statistics will be saved by the tracker instances
+class CreationTimingUser(BaseFcrepoUser):
+    """Concurrent collection creation workload without OCFL filesystem scans."""
+
+    @task
+    def create_atomic_collection(self):
+        self.create_collection_with_transaction(
+            is_archival_group=False,
+            measure_storage=False,
+            workflow_type="collection_creation_timing",
+            verbose=False,
+        )
+
+    @task
+    def create_ag_collection(self):
+        self.create_collection_with_transaction(
+            is_archival_group=True,
+            measure_storage=False,
+            workflow_type="collection_creation_timing",
+            verbose=False,
+        )
+
+
+@events.test_start.add_listener
+def create_run_statistics_tracker(environment, **kwargs):
+    """Create one shared tracker so concurrent users produce one run result."""
+    config_name = os.getenv("TEST_CONFIG_NAME", "default")
+    parsed_options = getattr(environment, "parsed_options", None)
+    environment.stats_tracker = StatisticsTracker(
+        results_dir=os.path.join("results", config_name),
+        run_metadata={
+            "config_name": config_name,
+            "start_time": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+            "user_classes": [user_class.__name__ for user_class in environment.user_classes],
+            "users": getattr(parsed_options, "num_users", None),
+            "spawn_rate": getattr(parsed_options, "spawn_rate", None),
+        },
+    )
+
+
+@events.test_stop.add_listener
+def save_run_statistics(environment, **kwargs):
+    """Persist the complete run after all users have stopped."""
+    tracker = getattr(environment, "stats_tracker", None)
+    if tracker:
+        tracker.set_run_metadata(end_time=time.strftime("%Y-%m-%dT%H:%M:%S%z"))
+        tracker.save_statistics()
+        print("\n=== Test run completed ===")

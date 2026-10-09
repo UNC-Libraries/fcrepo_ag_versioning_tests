@@ -60,10 +60,10 @@ FCREPO_BASE_PATH=/fcrepo/rest
 
 ### Basic Usage
 
-Run Locust with the web UI:
+Run the storage-growth workload with the web UI:
 
 ```bash
-locust
+locust -f locustfile.py FcrepoUser
 ```
 
 Then open your browser to http://localhost:8089 to configure and start the test.
@@ -76,7 +76,8 @@ Run without the web UI:
 locust --users 10 \
        --spawn-rate 1 \
        --run-time 5m \
-       --headless
+       --headless \
+       FcrepoUser
 ```
 
 ### Command Line Options
@@ -88,6 +89,21 @@ locust --users 10 \
 - `--html`: Generate HTML report (e.g., `--html=results/report.html`)
 
 **Note:** The fcrepo host and base path are configured in the `.env` file, not via command line parameters.
+
+### Collection Creation Timing
+
+`CreationTimingUser` repeatedly creates atomic and Archival Group collections in equal proportion. It measures complete transaction and commit durations without walking the OCFL filesystem, making it suitable for concurrent latency tests. Populate the repository first when testing against a representative baseline.
+
+```bash
+python populate_test_data.py --num-resources 10000 --workers 10
+locust -f locustfile.py CreationTimingUser \
+       --users 10 \
+       --spawn-rate 1 \
+       --run-time 10m \
+       --headless
+```
+
+Specify either `FcrepoUser` or `CreationTimingUser` when starting Locust. Omitting the class name runs both workloads together and invalidates their separate measurements.
 
 ## Test Scenarios
 
@@ -127,7 +143,7 @@ python populate_is_member_of.py
 
 ### `utils/stats_analyzer.py`
 
-Analyzes the latest saved custom statistics file from a Locust run. It compares atomic and Archival Group collection creation and PATCH workflows, reporting average request/workflow durations, OCFL file/directory/size deltas, and estimated storage growth per PATCH update.
+Analyzes the latest saved custom statistics file from a Locust run. For creation-timing runs, it reports successful and failed attempts plus mean, median, p95, p99, and bootstrap 95% confidence intervals for workflow and commit duration. For storage-growth runs, it compares atomic and Archival Group creation and PATCH workflows, including OCFL file/directory/size deltas and estimated storage growth per PATCH update.
 
 It depends on `locustfile.py` having completed at least one run that wrote statistics under `results/<TEST_CONFIG_NAME>/`. Pass a configuration name to analyze a specific results subdirectory; without one, it uses `TEST_CONFIG_NAME` or `default`.
 

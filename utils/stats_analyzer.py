@@ -3,6 +3,7 @@ Utility for analyzing and comparing statistics from multiple test runs
 """
 import json
 import os
+import random
 from glob import glob
 from datetime import datetime
 from typing import List, Dict
@@ -181,10 +182,12 @@ class StatsAnalyzer:
         """
         workflows = data.get("workflows", [])
         
-        atomic_creations = [w for w in workflows if w.get("operation") == "create_collection" 
+        atomic_creations = [w for w in workflows if w.get("operation") == "create_collection"
+                           and w.get("workflow_type", "collection_storage") == "collection_storage"
                            and w.get("collection_type") == "atomic"]
-        ag_creations = [w for w in workflows if w.get("operation") == "create_collection" 
-                       and w.get("collection_type") == "archival_group"]
+        ag_creations = [w for w in workflows if w.get("operation") == "create_collection"
+                        and w.get("workflow_type", "collection_storage") == "collection_storage"
+                        and w.get("collection_type") == "archival_group"]
 
         return {
             "atomic_collection": self.analyze_creations(atomic_creations),
@@ -246,6 +249,94 @@ class StatsAnalyzer:
             print(f"    Size Delta: {(ag['avg_size_delta'] - atomic['avg_size_delta']):+.2f} bytes ({(ag['avg_size_delta'] - atomic['avg_size_delta'])/1024:+.2f} KB)")
         
         print("=" * 70 + "\n")
+
+    @staticmethod
+    def _percentile(values: List[float], percentile: float) -> float:
+        """Calculate a percentile using linear interpolation between samples."""
+        if not values:
+            return 0.0
+        sorted_values = sorted(values)
+        index = (len(sorted_values) - 1) * percentile / 100
+        lower = int(index)
+        upper = min(lower + 1, len(sorted_values) - 1)
+        fraction = index - lower
+        return sorted_values[lower] + (sorted_values[upper] - sorted_values[lower]) * fraction
+
+    @staticmethod
+    def _mean_confidence_interval(values: List[float], samples: int = 1000) -> tuple:
+        """Return a deterministic bootstrap 95% interval for the sample mean."""
+        if len(values) < 2:
+            return (0.0, 0.0)
+        generator = random.Random(0)
+        count = len(values)
+        means = sorted(
+            sum(generator.choice(values) for _ in range(count)) / count
+            for _ in range(samples)
+        )
+        return (
+            StatsAnalyzer._percentile(means, 2.5),
+            StatsAnalyzer._percentile(means, 97.5),
+        )
+
+    def creation_timing_summary(self, data: Dict) -> Dict:
+        """Summarize successful creation-only workflow timings by collection type."""
+        workflows = [
+            workflow for workflow in data.get("workflows", [])
+            if workflow.get("operation") == "create_collection"
+            and workflow.get("workflow_type") == "collection_creation_timing"
+        ]
+
+        def summarize(collection_type):
+            attempts = [w for w in workflows if w.get("collection_type") == collection_type]
+            successes = [w for w in attempts if w.get("success", True)]
+            workflow_durations = [w["workflow_duration"] for w in successes if "workflow_duration" in w]
+            commit_durations = [w["commit_duration"] for w in successes if "commit_duration" in w]
+
+            def duration_summary(values):
+                if not values:
+                    return {}
+                return {
+                    "mean": sum(values) / len(values),
+                    "median": self._percentile(values, 50),
+                    "p95": self._percentile(values, 95),
+                    "p99": self._percentile(values, 99),
+                    "mean_95_ci": self._mean_confidence_interval(values),
+                }
+
+            return {
+                "attempts": len(attempts),
+                "successes": len(successes),
+                "failures": len(attempts) - len(successes),
+                "workflow_duration": duration_summary(workflow_durations),
+                "commit_duration": duration_summary(commit_durations),
+            }
+
+        return {
+            "atomic": summarize("atomic"),
+            "archival_group": summarize("archival_group"),
+        }
+
+    def print_creation_timing_summary(self, data: Dict):
+        """Print latency statistics for the creation-only Locust workload."""
+        summary = self.creation_timing_summary(data)
+        if not any(stats["attempts"] for stats in summary.values()):
+            return
+
+        print("\n" + "=" * 70)
+        print("CREATION TIMING: atomic vs Archival Group")
+        print("=" * 70)
+        for collection_type, stats in summary.items():
+            print(f"\n{collection_type.replace('_', ' ').title()}:")
+            print(f"  Attempts: {stats['attempts']}")
+            print(f"  Successful: {stats['successes']}")
+            print(f"  Failed: {stats['failures']}")
+            for label, durations in (("Workflow", stats["workflow_duration"]), ("Commit", stats["commit_duration"])):
+                if not durations:
+                    continue
+                ci_low, ci_high = durations["mean_95_ci"]
+                print(f"  {label} Mean: {durations['mean']:.4f}s (95% CI {ci_low:.4f}s to {ci_high:.4f}s)")
+                print(f"  {label} Median/P95/P99: {durations['median']:.4f}s / {durations['p95']:.4f}s / {durations['p99']:.4f}s")
+        print("=" * 70 + "\n")
     
     def print_comparison(self, data: Dict):
         """
@@ -255,7 +346,9 @@ class StatsAnalyzer:
             data: Statistics data from a run
         """
 
-        # Print creation comparison first
+        self.print_creation_timing_summary(data)
+
+        # Print storage-growth creation comparison first
         self.print_creation_comparison(data)
 
         comparison = self.compare_patch_operations(data)
