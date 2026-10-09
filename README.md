@@ -15,6 +15,8 @@ A Python-based performance testing suite for Fedora Repository (fcrepo) using Lo
 ├── locustfile.py           # Main Locust test scenarios
 ├── populate_test_data.py   # Generates a mixed Fedora test dataset
 ├── populate_is_member_of.py # Generates an inbound-membership test dataset
+├── docker-compose.yml       # Fedora 5, 6, and 7 test services
+├── docker/                  # Fedora and PostgreSQL configuration
 ├── utils/                  # Utility modules
 │   └── statistics_tracker.py  # Statistics collection and reporting
 │   └── stats_analyzer.py      # Compares saved Locust workflow results
@@ -55,6 +57,30 @@ Edit `.env` with your fcrepo settings:
 FCREPO_HOST=http://localhost:8080
 FCREPO_BASE_PATH=/fcrepo/rest
 ```
+
+### 4. Start Fedora Services
+
+Start the Docker Compose environment to run Fedora 5.1.1, 6.5.2, and 7.0.0 concurrently. Each Fedora service has its own database in the shared PostgreSQL server and its own storage directory. The services expose Fedora at ports 8085, 8086, and 8087 respectively.
+
+```bash
+docker compose up -d
+```
+
+The external-content files created by the Locust workflow are stored in `test_bins/` on the host and mounted at `/external/` in every Fedora container. Fedora 6 and 7 OCFL storage is available in `docker-data/fcrepo6/ocfl` and `docker-data/fcrepo7/ocfl` for serial storage-growth tests.
+
+Set the target release in `.env` before each test run:
+
+```dotenv
+# Fedora 6
+FCREPO_HOST=http://localhost:8086
+FCREPO_OCFL_PATH=./docker-data/fcrepo6/ocfl
+
+# Fedora 7
+# FCREPO_HOST=http://localhost:8087
+# FCREPO_OCFL_PATH=./docker-data/fcrepo7/ocfl
+```
+
+Fedora 5 uses ModeShape filesystem storage rather than OCFL, so the OCFL file-count and byte-growth measurements do not apply to that service. It can still be used for request-timing workloads.
 
 ## Running Tests
 

@@ -1,0 +1,3 @@
+CREATE DATABASE fcrepo5 OWNER fcrepo;
+CREATE DATABASE fcrepo6 OWNER fcrepo;
+CREATE DATABASE fcrepo7 OWNER fcrepo;

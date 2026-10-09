@@ -41,6 +41,10 @@ results/*/*.json
 results/*.csv
 results/*.html
 
+# Docker test state and externally managed test content
+docker-data/
+test_bins/
+
 # Locust
 locust-*.log
 

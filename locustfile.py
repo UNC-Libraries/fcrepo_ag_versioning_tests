@@ -32,8 +32,13 @@ class BaseFcrepoUser(HttpUser):
         self.stats_tracker = self.environment.stats_tracker
         
         self.base_path = os.getenv("FCREPO_BASE_PATH", "/fcrepo/rest")
-        self.test_bins_path = "/Users/bbpennel/git/boxc-ansible/workspace/test_bins/"
-        self.test_ocfl_path = "/Users/bbpennel/git/boxc-ansible/workspace/ocfl_root/"
+        project_dir = os.path.dirname(os.path.abspath(__file__))
+        self.test_bins_path = os.getenv("FCREPO_EXTERNAL_CONTENT_PATH", os.path.join(project_dir, "test_bins"))
+        self.external_content_uri = os.getenv("FCREPO_EXTERNAL_CONTENT_URI", "file:///external/")
+        if not self.external_content_uri.endswith("/"):
+            self.external_content_uri += "/"
+        self.test_ocfl_path = os.getenv("FCREPO_OCFL_PATH", os.path.join(project_dir, "docker-data", "fcrepo6", "ocfl"))
+        os.makedirs(self.test_bins_path, exist_ok=True)
         
         # Track created collections and their update counters
         self.created_collections = []
@@ -223,7 +228,7 @@ class BaseFcrepoUser(HttpUser):
                 headers={
                     **tx_headers,
                     "Content-Type": "text/turtle",
-                    "Link": f'<file:///vagrant/workspace/test_bins/{md_descriptive_file}>; rel="http://fedora.info/definitions/fcrepo#ExternalContent"; handling="proxy"; type="text/xml"'
+                    "Link": f'<{self.external_content_uri}{md_descriptive_file}>; rel="http://fedora.info/definitions/fcrepo#ExternalContent"; handling="proxy"; type="text/xml"'
                 },
                 data="",
                 auth=self.auth,
@@ -243,7 +248,7 @@ class BaseFcrepoUser(HttpUser):
                 headers={
                     **tx_headers,
                     "Content-Type": "text/turtle",
-                    "Link": f'<file:///vagrant/workspace/test_bins/{md_descriptive_history_file}>; rel="http://fedora.info/definitions/fcrepo#ExternalContent"; handling="proxy"; type="text/xml"'
+                    "Link": f'<{self.external_content_uri}{md_descriptive_history_file}>; rel="http://fedora.info/definitions/fcrepo#ExternalContent"; handling="proxy"; type="text/xml"'
                 },
                 data="",
                 auth=self.auth,
@@ -263,7 +268,7 @@ class BaseFcrepoUser(HttpUser):
                 headers={
                     **tx_headers,
                     "Content-Type": "text/turtle",
-                    "Link": f'<file:///vagrant/workspace/test_bins/{event_log_file}>; rel="http://fedora.info/definitions/fcrepo#ExternalContent"; handling="proxy"; type="application/n-triples"'
+                    "Link": f'<{self.external_content_uri}{event_log_file}>; rel="http://fedora.info/definitions/fcrepo#ExternalContent"; handling="proxy"; type="application/n-triples"'
                 },
                 data="",
                 auth=self.auth,
