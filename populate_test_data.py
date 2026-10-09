@@ -623,25 +623,25 @@ def main():
         '--base-url',
         type=str,
         default=os.getenv("FCREPO_HOST", "http://localhost:8080"),
-        help='Base URL of the fcrepo instance (default: from FCREPO_HOST env var or http://localhost:8080)'
+        help='Base URL of the fcrepo instance (default: from .env FCREPO_HOST or http://localhost:8080)'
     )
     parser.add_argument(
         '--base-path',
         type=str,
         default=os.getenv("FCREPO_BASE_PATH", "/fcrepo/rest"),
-        help='Base path for API endpoints (default: from FCREPO_BASE_PATH env var or /fcrepo/rest)'
+        help='Base path for API endpoints (default: from .env FCREPO_BASE_PATH or /fcrepo/rest)'
     )
     parser.add_argument(
         '--username',
         type=str,
         default=os.getenv("FCREPO_USERNAME"),
-        help='Username for basic authentication (default: from FCREPO_USERNAME env var)'
+        help='Username for basic authentication (default: from .env FCREPO_USERNAME)'
     )
     parser.add_argument(
         '--password',
         type=str,
         default=os.getenv("FCREPO_PASSWORD"),
-        help='Password for basic authentication (default: from FCREPO_PASSWORD env var)'
+        help='Password for basic authentication (default: from .env FCREPO_PASSWORD)'
     )
     parser.add_argument(
         '--workers',

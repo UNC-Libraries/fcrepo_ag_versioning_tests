@@ -12,8 +12,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # --- Config ---
-FCREPO_BASE = os.getenv("FCREPO_HOST", "http://localhost:8080") + os.getenv("FCREPO_BASE_PATH")
-AUTH = (os.getenv("FCREPO_USERNAME"), os.getenv("FCREPO_PASSWORD"))
+FCREPO_HOST = os.getenv("FCREPO_HOST", "http://localhost:8080").rstrip("/")
+FCREPO_BASE_PATH = os.getenv("FCREPO_BASE_PATH", "/fcrepo/rest")
+FCREPO_BASE = f"{FCREPO_HOST}{FCREPO_BASE_PATH}"
+username = os.getenv("FCREPO_USERNAME")
+password = os.getenv("FCREPO_PASSWORD")
+AUTH = (username, password) if username and password else None
 NUM_MEMBERS = 10000
 NUM_WORKERS = 10
 
