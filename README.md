@@ -54,7 +54,7 @@ cp .env.example .env
 
 Edit `.env` with your fcrepo settings:
 ```bash
-FCREPO_HOST=http://localhost:8080
+FCREPO_HOST=http://localhost:8086
 FCREPO_BASE_PATH=/fcrepo/rest
 ```
 
@@ -80,7 +80,57 @@ FCREPO_OCFL_PATH=./docker-data/fcrepo6/ocfl
 # FCREPO_OCFL_PATH=./docker-data/fcrepo7/ocfl
 ```
 
-Fedora 5 uses ModeShape filesystem storage rather than OCFL, so the OCFL file-count and byte-growth measurements do not apply to that service. It can still be used for request-timing workloads.
+For Fedora 6 and 7, set the startup-time autoversioning option in `.env`:
+
+```dotenv
+FCREPO_AUTOVERSIONING_ENABLED=false
+```
+
+Fedora 5 uses ModeShape filesystem storage rather than OCFL and does not support this option, so OCFL file-count and byte-growth measurements do not apply to that service. It can still be used for request-timing workloads.
+
+### 5. Run a Fresh Docker Test
+
+Use this sequence every time the Fedora release or autoversioning mode changes. It resets PostgreSQL and the bind-mounted Fedora storage before populating data. Update the marked `.env` values first, then paste the commands from the repository root.
+
+```dotenv
+# Fedora 6 with autoversioning disabled
+FCREPO_HOST=http://localhost:8086
+FCREPO_OCFL_PATH=./docker-data/fcrepo6/ocfl
+FCREPO_AUTOVERSIONING_ENABLED=false
+TEST_CONFIG_NAME=fcrepo6-autoversioning-off
+
+# Fedora 7 example
+# FCREPO_HOST=http://localhost:8087
+# FCREPO_OCFL_PATH=./docker-data/fcrepo7/ocfl
+# FCREPO_AUTOVERSIONING_ENABLED=true
+# TEST_CONFIG_NAME=fcrepo7-autoversioning-on
+```
+
+```bash
+# Stop services and remove PostgreSQL state, then remove bind-mounted Fedora state.
+docker compose down -v --remove-orphans
+rm -rf docker-data test_bins
+
+# Start the selected configuration and wait for its REST endpoint.
+docker compose up -d
+set -a
+. ./.env
+set +a
+until curl --fail --silent --output /dev/null "${FCREPO_HOST}${FCREPO_BASE_PATH}"; do sleep 2; done
+
+# Establish a representative repository baseline.
+.venv/bin/python populate_test_data.py --num-resources 10000 --workers 10
+
+# Run creation timing as its own Locust invocation.
+.venv/bin/locust -f locustfile.py CreationTimingUser --headless \
+  --users "$LOCUST_USERS" --spawn-rate "$LOCUST_SPAWN_RATE" --run-time "$LOCUST_RUN_TIME"
+
+# Run the OCFL storage-growth workload as a separate Locust invocation.
+.venv/bin/locust -f locustfile.py FcrepoUser --headless \
+  --users "$LOCUST_USERS" --spawn-rate "$LOCUST_SPAWN_RATE" --run-time "$LOCUST_RUN_TIME"
+```
+
+For strictly isolated creation-timing and storage-growth samples, repeat the full reset-and-populate sequence before each Locust command rather than running both against the same repository state.
 
 ## Running Tests
 

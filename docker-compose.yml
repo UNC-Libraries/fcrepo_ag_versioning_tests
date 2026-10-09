@@ -44,7 +44,9 @@ services:
     ports:
       - "8086:8080"
     environment:
-      CATALINA_OPTS: -Dfcrepo.config.file=/config/fcrepo.properties
+      CATALINA_OPTS: >-
+        -Dfcrepo.config.file=/config/fcrepo.properties
+        -Dfcrepo.autoversioning.enabled=${FCREPO_AUTOVERSIONING_ENABLED:-false}
     volumes:
       - ./docker/fcrepo6/fcrepo.properties:/config/fcrepo.properties:ro
       - ./docker/allowed-external-content.txt:/config/allowed-external-content.txt:ro
@@ -59,7 +61,9 @@ services:
     ports:
       - "8087:8080"
     environment:
-      CATALINA_OPTS: -Dfcrepo.config.file=/config/fcrepo.properties
+      CATALINA_OPTS: >-
+        -Dfcrepo.config.file=/config/fcrepo.properties
+        -Dfcrepo.autoversioning.enabled=${FCREPO_AUTOVERSIONING_ENABLED:-false}
     volumes:
       - ./docker/fcrepo7/fcrepo.properties:/config/fcrepo.properties:ro
       - ./docker/allowed-external-content.txt:/config/allowed-external-content.txt:ro
