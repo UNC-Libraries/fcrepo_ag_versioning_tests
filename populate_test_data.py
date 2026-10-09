@@ -14,8 +14,8 @@ from typing import Optional, Tuple, Union
 from dotenv import load_dotenv
 import os
 
-# Load environment variables from .env file
-load_dotenv()
+# The local test configuration must override stale shell variables from Vagrant.
+load_dotenv(override=True)
 
 
 class FcrepoDataPopulator:

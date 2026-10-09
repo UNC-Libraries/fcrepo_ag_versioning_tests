@@ -10,8 +10,8 @@ import json
 import time
 import uuid
 
-# Load environment variables from .env file
-load_dotenv()
+# The local test configuration must override stale shell variables from Vagrant.
+load_dotenv(override=True)
 
 class BaseFcrepoUser(HttpUser):
     """

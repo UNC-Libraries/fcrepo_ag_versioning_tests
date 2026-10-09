@@ -9,7 +9,8 @@ import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dotenv import load_dotenv
 
-load_dotenv()
+# The local test configuration must override stale shell variables from Vagrant.
+load_dotenv(override=True)
 
 # --- Config ---
 FCREPO_HOST = os.getenv("FCREPO_HOST", "http://localhost:8080").rstrip("/")

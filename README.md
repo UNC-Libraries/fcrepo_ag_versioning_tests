@@ -56,6 +56,8 @@ Edit `.env` with your fcrepo settings:
 ```bash
 FCREPO_HOST=http://localhost:8086
 FCREPO_BASE_PATH=/fcrepo/rest
+FCREPO_USERNAME=fedoraAdmin
+FCREPO_PASSWORD=fedoraAdmin
 ```
 
 ### 4. Start Fedora Services
@@ -113,21 +115,18 @@ rm -rf docker-data test_bins
 
 # Start the selected configuration and wait for its REST endpoint.
 docker compose up -d
-set -a
-. ./.env
-set +a
-until curl --fail --silent --output /dev/null "${FCREPO_HOST}${FCREPO_BASE_PATH}"; do sleep 2; done
+.venv/bin/python await_fedora.py
 
 # Establish a representative repository baseline.
 .venv/bin/python populate_test_data.py --num-resources 10000 --workers 10
 
 # Run creation timing as its own Locust invocation.
 .venv/bin/locust -f locustfile.py CreationTimingUser --headless \
-  --users "$LOCUST_USERS" --spawn-rate "$LOCUST_SPAWN_RATE" --run-time "$LOCUST_RUN_TIME"
+  --users 10 --spawn-rate 1 --run-time 5m
 
 # Run the OCFL storage-growth workload as a separate Locust invocation.
 .venv/bin/locust -f locustfile.py FcrepoUser --headless \
-  --users "$LOCUST_USERS" --spawn-rate "$LOCUST_SPAWN_RATE" --run-time "$LOCUST_RUN_TIME"
+  --users 10 --spawn-rate 1 --run-time 5m
 ```
 
 For strictly isolated creation-timing and storage-growth samples, repeat the full reset-and-populate sequence before each Locust command rather than running both against the same repository state.
