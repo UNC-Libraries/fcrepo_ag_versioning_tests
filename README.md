@@ -117,17 +117,30 @@ rm -rf docker-data test_bins
 docker compose up -d
 .venv/bin/python await_fedora.py
 
-# Establish a representative repository baseline.
+# Warm up fedora with a small number of creations
+.venv/bin/python populate_test_data.py --num-resources 10 --workers 10
+
+# Run the OCFL storage-growth workload as a separate serial Locust invocation.
+# Per-workflow OCFL deltas are not meaningful when multiple users write concurrently.
+.venv/bin/locust -f locustfile.py FcrepoUser --headless \
+  --users 1 --spawn-rate 1 --run-time 5m
+
+# Establish a more realistic representative repository baseline prior to speed tests.
 .venv/bin/python populate_test_data.py --num-resources 10000 --workers 10
 
 # Run creation timing as its own Locust invocation.
 .venv/bin/locust -f locustfile.py CreationTimingUser --headless \
   --users 10 --spawn-rate 1 --run-time 5m
 
-# Run the OCFL storage-growth workload as a separate Locust invocation.
-.venv/bin/locust -f locustfile.py FcrepoUser --headless \
-  --users 10 --spawn-rate 1 --run-time 5m
 ```
+
+### Switching autoversioning flag while retaining populated repo
+1. Edit your .env file to change the property. You will likely also want to change `TEST_CONFIG_NAME`
+2. Then recreate the fedora 6/7 instances without deleting their data
+```
+docker compose up -d --force-recreate fcrepo6 fcrepo7
+```
+
 
 For strictly isolated creation-timing and storage-growth samples, repeat the full reset-and-populate sequence before each Locust command rather than running both against the same repository state.
 
@@ -135,7 +148,7 @@ For strictly isolated creation-timing and storage-growth samples, repeat the ful
 
 ### Basic Usage
 
-Run the storage-growth workload with the web UI:
+Run the serial storage-growth workload with the web UI:
 
 ```bash
 locust -f locustfile.py FcrepoUser
@@ -145,10 +158,11 @@ Then open your browser to http://localhost:8089 to configure and start the test.
 
 ### Headless Mode
 
-Run without the web UI:
+Run the storage-growth workload without the web UI. Use one user because each
+workflow captures before-and-after statistics for the shared OCFL directory.
 
 ```bash
-locust --users 10 \
+locust --users 1 \
        --spawn-rate 1 \
        --run-time 5m \
        --headless \
@@ -218,7 +232,7 @@ python populate_is_member_of.py
 
 ### `utils/stats_analyzer.py`
 
-Analyzes the latest saved custom statistics file from a Locust run. For creation-timing runs, it reports successful and failed attempts plus mean, median, p95, p99, and bootstrap 95% confidence intervals for workflow and commit duration. For storage-growth runs, it compares atomic and Archival Group creation and PATCH workflows, including OCFL file/directory/size deltas and estimated storage growth per PATCH update.
+Analyzes all saved custom statistics files from Locust runs in the selected results directory. Creation-timing and storage-growth workflows are reported separately, so both workloads can share one configuration directory. For creation-timing runs, it reports successful and failed attempts plus mean, median, p95, p99, and bootstrap 95% confidence intervals for workflow and commit duration. For storage-growth runs, it compares atomic and Archival Group creation and PATCH workflows, including OCFL file/directory/size deltas and estimated storage growth per PATCH update.
 
 It depends on `locustfile.py` having completed at least one run that wrote statistics under `results/<TEST_CONFIG_NAME>/`. Pass a configuration name to analyze a specific results subdirectory; without one, it uses `TEST_CONFIG_NAME` or `default`.
 

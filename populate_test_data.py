@@ -85,7 +85,9 @@ class FcrepoDataPopulator:
         self.start_time = None
         self.created_resources = []
 
-    def create_resource(self, index: Union[int, str]) -> Tuple[bool, str, Optional[str]]:
+    def create_resource(
+        self, index: Union[int, str], rdf_type_count: Optional[int] = None
+    ) -> Tuple[bool, str, Optional[str]]:
         """
         Create a single resource via POST request
         50% of the time creates an Archival Group, 50% creates an Atomic Resource
@@ -93,6 +95,7 @@ class FcrepoDataPopulator:
 
         Args:
             index: Resource index number or identifier for slug generation
+            rdf_type_count: Exact number of RDF types to add, or random 0-4
 
         Returns:
             Tuple of (success, message, resource_uri)
@@ -111,7 +114,7 @@ class FcrepoDataPopulator:
             headers = {"Slug": slug}
 
         # Determine number of additional RDF types (0-4)
-        num_types = random.randint(0, 4)
+        num_types = random.randint(0, 4) if rdf_type_count is None else rdf_type_count
         body = None
 
         if num_types > 0:
@@ -138,7 +141,7 @@ class FcrepoDataPopulator:
                     self.atomic_count += 1
                 return True, f"Created {'AG' if is_archival_group else 'atomic'} resource {index}: {slug}", resource_uri
             else:
-                return False, f"Failed to create resource {index}: HTTP {response.status_code}", None
+                return False, f"Failed to create resource {index} {self.full_path} {body}: HTTP {response.status_code}", None
 
         except requests.exceptions.RequestException as e:
             return False, f"Error creating resource {index}: {str(e)}", None
@@ -549,6 +552,11 @@ class FcrepoDataPopulator:
         print(f"Workers: {max_workers}")
         print(f"Mix: 50% Archival Groups, 50% Atomic Resources")
         print(f"{'='*60}\n")
+
+        # Register every type before concurrent requests can introduce it in parallel.
+        success, message, _ = self.create_resource("rdf-type-initialization", rdf_type_count=4)
+        if not success:
+            raise RuntimeError(f"Unable to initialize RDF types: {message}")
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             # Submit all tasks

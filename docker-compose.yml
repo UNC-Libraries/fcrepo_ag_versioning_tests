@@ -54,7 +54,7 @@ services:
       - ./docker-data/fcrepo6:/data
 
   fcrepo7:
-    image: fcrepo/fcrepo:7.0.0-tomcat10
+    image: fcrepo/fcrepo:7.1.0-SNAPSHOT
     depends_on:
       postgres:
         condition: service_healthy

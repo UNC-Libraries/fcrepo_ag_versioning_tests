@@ -78,6 +78,26 @@ class StatsAnalyzer:
         """
         runs = self.list_available_runs()
         return [self.load_run(run) for run in runs]
+
+    def load_combined_runs(self) -> Dict:
+        """Combine records from every saved run in this configuration."""
+        runs = self.list_available_runs()
+        if not runs:
+            raise ValueError("No statistics files found")
+
+        combined = {
+            "run_metadata": {"source_runs": runs},
+            "summary": {},
+            "responses": [],
+            "creations": [],
+            "workflows": [],
+        }
+        for run in runs:
+            data = self.load_run(run)
+            for key in ("responses", "creations", "workflows"):
+                combined[key].extend(data.get(key, []))
+
+        return combined
     
     def compare_patch_operations(self, data: Dict) -> Dict:
         """
@@ -447,10 +467,9 @@ if __name__ == "__main__":
     runs = analyzer.list_available_runs()
     if runs:
         print(f"Found {len(runs)} test run(s)")
-        print(f"Latest run: {runs[-1]}")
+        print("Combining all runs")
         
-        # Load and analyze latest run
-        data = analyzer.load_latest_run()
+        data = analyzer.load_combined_runs()
         analyzer.print_comparison(data)
     else:
         print(f"No statistics files found in '{analyzer.results_dir}' directory")

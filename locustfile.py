@@ -3,6 +3,7 @@ Locust performance test suite for Fedora Repository (fcrepo)
 Measures response performance and tracks file counts and sizes
 """
 from locust import HttpUser, task, between, events
+from gevent import get_hub
 from utils.statistics_tracker import StatisticsTracker
 from dotenv import load_dotenv
 import os
@@ -66,6 +67,10 @@ class BaseFcrepoUser(HttpUser):
         return timestamped_name
 
     def _get_directory_stats(self, path):
+        """Run the blocking OCFL filesystem walk outside Locust's event loop."""
+        return get_hub().threadpool.apply(self._get_directory_stats_sync, (path,))
+
+    def _get_directory_stats_sync(self, path):
         """
         Get file count, directory count, and total size for a directory
         
