@@ -450,26 +450,130 @@ class StatsAnalyzer:
         
         print("=" * 70 + "\n")
 
+    @staticmethod
+    def _print_metric_change(label: str, reference: float, comparison: float, unit: str = ""):
+        """Print a per-operation metric change without treating sample counts as a metric."""
+        difference = comparison - reference
+        if reference > 0:
+            relative_change = f"{difference / reference * 100:+.1f}%"
+        else:
+            relative_change = "n/a (reference is not positive)"
+        print(
+            f"  {label}: {reference:.4f}{unit} -> {comparison:.4f}{unit} "
+            f"({difference:+.4f}{unit}, {relative_change})"
+        )
+
+    def print_result_set_comparison(
+        self,
+        reference_data: Dict,
+        comparison_data: Dict,
+        reference_name: str,
+        comparison_name: str,
+    ):
+        """Print normalized workflow and OCFL-delta changes across two result sets."""
+        print("\n" + "=" * 70)
+        print("RESULT SET CHANGE")
+        print("=" * 70)
+        print(f"Reference: {reference_name}")
+        print(f"Comparison: {comparison_name}")
+        print("A negative duration change means the comparison result set is faster.")
+
+        reference_timing = self.creation_timing_summary(reference_data)
+        comparison_timing = self.creation_timing_summary(comparison_data)
+        for collection_type in ("atomic", "archival_group"):
+            reference = reference_timing[collection_type]
+            comparison = comparison_timing[collection_type]
+            if not reference["attempts"] or not comparison["attempts"]:
+                continue
+
+            print(f"\nCreation timing, {collection_type.replace('_', ' ')}:")
+            print(
+                f"  Attempts (context only): {reference['attempts']} -> {comparison['attempts']}; "
+                f"failures: {reference['failures']} -> {comparison['failures']}"
+            )
+            for label, key in (("Workflow", "workflow_duration"), ("Commit", "commit_duration")):
+                reference_durations = reference[key]
+                comparison_durations = comparison[key]
+                if not reference_durations or not comparison_durations:
+                    continue
+                self._print_metric_change(f"{label} mean", reference_durations["mean"], comparison_durations["mean"], "s")
+                self._print_metric_change(f"{label} median", reference_durations["median"], comparison_durations["median"], "s")
+                self._print_metric_change(f"{label} p95", reference_durations["p95"], comparison_durations["p95"], "s")
+                self._print_metric_change(f"{label} p99", reference_durations["p99"], comparison_durations["p99"], "s")
+
+        metric_labels = (
+            ("avg_workflow_duration", "Average workflow duration", "s"),
+            ("avg_commit_duration", "Average commit duration", "s"),
+            ("avg_file_count_delta", "Average file delta", " files"),
+            ("avg_dir_count_delta", "Average directory delta", " directories"),
+            ("avg_size_delta", "Average OCFL size delta", " bytes"),
+        )
+        reference_creations = self.compare_creation_operations(reference_data)
+        comparison_creations = self.compare_creation_operations(comparison_data)
+        for collection_type in ("atomic_collection", "archival_group_collection"):
+            reference = reference_creations[collection_type]
+            comparison = comparison_creations[collection_type]
+            if not reference or not comparison:
+                continue
+
+            print(f"\nCollection creation storage, {collection_type.replace('_collection', '').replace('_', ' ')}:")
+            print(f"  Operations (context only): {reference['count']} -> {comparison['count']}")
+            for key, label, unit in metric_labels:
+                self._print_metric_change(label, reference[key], comparison[key], unit)
+
+        patch_metric_labels = (
+            ("avg_patch_duration", "Average PATCH duration", "s"),
+            ("avg_file_count_delta", "Average file delta", " files"),
+            ("avg_dir_count_delta", "Average directory delta", " directories"),
+            ("avg_size_delta", "Average OCFL size delta", " bytes"),
+            ("size_growth_rate", "OCFL growth rate", " bytes/update"),
+        )
+        reference_patches = self.compare_patch_operations(reference_data)
+        comparison_patches = self.compare_patch_operations(comparison_data)
+        for collection_type in ("atomic_collection", "archival_group_collection"):
+            reference = reference_patches[collection_type]
+            comparison = comparison_patches[collection_type]
+            if not reference or not comparison:
+                continue
+
+            print(f"\nPATCH storage, {collection_type.replace('_collection', '').replace('_', ' ')}:")
+            print(f"  Operations (context only): {reference['count']} -> {comparison['count']}")
+            for key, label, unit in patch_metric_labels:
+                if reference.get(key) is not None and comparison.get(key) is not None:
+                    self._print_metric_change(label, reference[key], comparison[key], unit)
+
+        print("=" * 70 + "\n")
+
 
 if __name__ == "__main__":
-    # Example usage
     import sys
-    
-    # Allow specifying config name as command-line argument
-    # If not provided, uses TEST_CONFIG_NAME from environment
-    config_name = sys.argv[1] if len(sys.argv) > 1 else None
-    
-    analyzer = StatsAnalyzer(config_name=config_name)
-    
-    print(f"Analyzing config: '{analyzer.config_name}'")
-    print(f"Results directory: '{analyzer.results_dir}'")
-    
-    runs = analyzer.list_available_runs()
-    if runs:
+
+    def analyze_config(config_name):
+        analyzer = StatsAnalyzer(config_name=config_name)
+        print(f"Analyzing config: '{analyzer.config_name}'")
+        print(f"Results directory: '{analyzer.results_dir}'")
+        runs = analyzer.list_available_runs()
+        if not runs:
+            print(f"No statistics files found in '{analyzer.results_dir}' directory")
+            return analyzer, None
         print(f"Found {len(runs)} test run(s)")
         print("Combining all runs")
-        
         data = analyzer.load_combined_runs()
         analyzer.print_comparison(data)
+        return analyzer, data
+
+    if len(sys.argv) > 1 and sys.argv[1] == "compare":
+        if len(sys.argv) != 4:
+            raise SystemExit("Usage: python utils/stats_analyzer.py compare <reference-config> <comparison-config>")
+        reference_analyzer, reference_data = analyze_config(sys.argv[2])
+        comparison_analyzer, comparison_data = analyze_config(sys.argv[3])
+        if reference_data and comparison_data:
+            reference_analyzer.print_result_set_comparison(
+                reference_data,
+                comparison_data,
+                reference_analyzer.config_name,
+                comparison_analyzer.config_name,
+            )
     else:
-        print(f"No statistics files found in '{analyzer.results_dir}' directory")
+        config_name = sys.argv[1] if len(sys.argv) > 1 else None
+        analyze_config(config_name)
