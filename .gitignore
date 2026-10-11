@@ -35,15 +35,16 @@ env/
 
 # Environment variables
 .env
+.env_*
 
 # Test results
-results/*/*.json
-results/*.csv
-results/*.html
+results/*
 
 # Docker test state and externally managed test content
 docker-data/
 test_bins/
+
+run_test_sets.sh
 
 # Locust
 locust-*.log

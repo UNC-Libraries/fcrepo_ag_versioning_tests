@@ -114,59 +114,59 @@ class StatsAnalyzer:
         atomic_patches = [w for w in workflows if w.get("operation") == "patch_collection" 
                          and w.get("collection_type") == "atomic"]
         ag_patches = [w for w in workflows if w.get("operation") == "patch_collection" 
-                     and w.get("collection_type") == "archival_group"]
+                      and w.get("collection_type") == "archival_group"]
         
         def analyze_patches(patches):
             if not patches:
                 return {}
-            
-            # Sort by update counter to ensure proper ordering
-            sorted_patches = sorted(patches, key=lambda p: p.get("update_counter", 0))
-            
-            # Calculate growth rate (linear regression slope)
-            size_deltas = [p.get("patch_collection_ocfl_size_delta", 0) for p in sorted_patches]
-            growth_rate = None
-            if len(size_deltas) > 1:
-                # Linear regression: y = mx + b, we want m (slope = growth rate)
-                # Since x values are sequential (1, 2, 3, ...), we can use a simplified formula
-                #
-                # EXAMPLE: If size_deltas = [3490, 4289, 5088, 5887, 6686]
-                #   x values: [1, 2, 3, 4, 5]
-                #   We're finding the line of best fit to see the trend
-                #   The slope tells us: "on average, each update adds ~800 bytes"
-                #
-                n = len(size_deltas)
-                
-                # Full linear regression formula (works for any x values)
-                x_values = list(range(1, n + 1))  # Update counter: 1, 2, 3, ...
-                x_mean = sum(x_values) / n  # Average x position (middle of the sequence)
-                y_mean = sum(size_deltas) / n  # Average size delta
-                
-                # Numerator: measures how y and x change together
-                # For each point, we look at how far it is from the means
-                numerator = sum((x - x_mean) * (y - y_mean) for x, y in zip(x_values, size_deltas))
-                
-                # Denominator: spread of x values from their mean
-                # For x = [1,2,3,4,5] with x_mean=3: denominator = (-2)² + (-1)² + 0² + 1² + 2² = 10
+            sequences = {}
+            for index, patch in enumerate(patches):
+                # update_counter restarts for every created collection, including in later runs.
+                collection_id = patch.get("collection_id", f"unknown-{index}")
+                sequences.setdefault(collection_id, []).append(patch)
+
+            sequence_slopes = []
+            sequence_projections = []
+            first_deltas = []
+            last_deltas = []
+            for sequence in sequences.values():
+                ordered = sorted(sequence, key=lambda p: p.get("update_counter", 0))
+                size_deltas = [p.get("patch_collection_ocfl_size_delta", 0) for p in ordered]
+                first_deltas.append(size_deltas[0])
+                last_deltas.append(size_deltas[-1])
+                if len(size_deltas) < 2:
+                    continue
+
+                x_values = [p.get("update_counter", index + 1) for index, p in enumerate(ordered)]
+                x_mean = sum(x_values) / len(x_values)
+                y_mean = sum(size_deltas) / len(size_deltas)
                 denominator = sum((x - x_mean) ** 2 for x in x_values)
-                
-                if denominator != 0:
-                    growth_rate = numerator / denominator
-                
-                # In your example: growth_rate ≈ 799 bytes/update
-                # This means each new update adds roughly 799 more bytes to OCFL storage
-            
-            
+                if not denominator:
+                    continue
+
+                slope = sum(
+                    (x - x_mean) * (y - y_mean)
+                    for x, y in zip(x_values, size_deltas)
+                ) / denominator
+                sequence_slopes.append(slope)
+                updates = 100
+                sequence_projections.append(
+                    updates * size_deltas[0] + slope * updates * (updates - 1) / 2
+                )
+
             return {
                 "count": len(patches),
+                "sequence_count": len(sequences),
+                "growth_sequence_count": len(sequence_slopes),
                 "avg_patch_duration": sum(p.get("patch_duration", 0) for p in patches) / len(patches),
                 "avg_file_count_delta": sum(p.get("patch_collection_ocfl_count_delta", 0) for p in patches) / len(patches),
                 "avg_dir_count_delta": sum(p.get("patch_collection_ocfl_directories_delta", 0) for p in patches) / len(patches),
                 "avg_size_delta": sum(p.get("patch_collection_ocfl_size_delta", 0) for p in patches) / len(patches),
                 "total_size_delta": sum(p.get("patch_collection_ocfl_size_delta", 0) for p in patches),
-                "size_growth_rate": growth_rate,  # Bytes per update
-                "first_patch_size_delta": sorted_patches[0].get("patch_collection_ocfl_size_delta", 0) if sorted_patches else 0,
-                "last_patch_size_delta": sorted_patches[-1].get("patch_collection_ocfl_size_delta", 0) if sorted_patches else 0,
+                "size_growth_rate": sum(sequence_slopes) / len(sequence_slopes) if sequence_slopes else None,
+                "avg_first_patch_size_delta": sum(first_deltas) / len(first_deltas),
+                "avg_last_patch_size_delta": sum(last_deltas) / len(last_deltas),
+                "expected_100_size_delta": sum(sequence_projections) / len(sequence_projections) if sequence_projections else None,
             }
         
         return {
@@ -383,6 +383,7 @@ class StatsAnalyzer:
                 
             print(f"\n{coll_type.replace('_', ' ').title()}:")
             print(f"  Operations: {stats['count']}")
+            print(f"  Collection Sequences: {stats['sequence_count']}")
             print(f"  Avg Patch Duration: {stats['avg_patch_duration']:.4f}s")
             print(f"  Avg File Count Delta: {stats['avg_file_count_delta']:.2f}")
             print(f"  Avg Directory Count Delta: {stats['avg_dir_count_delta']:.2f}")
@@ -391,23 +392,11 @@ class StatsAnalyzer:
             
             # Growth rate information
             if stats.get('size_growth_rate') is not None:
-                print(f"\n  Storage Growth Rate: {stats['size_growth_rate']:.2f} bytes/update")
-                print(f"  First Patch Size Delta: {stats['first_patch_size_delta']} bytes")
-                print(f"  Last Patch Size Delta: {stats['last_patch_size_delta']} bytes")
-                if stats['count'] > 1:
-                    delta_growth = stats['last_patch_size_delta'] - stats['first_patch_size_delta']
-                    print(f"  Delta Growth: {delta_growth} bytes over {stats['count']} updates")
-                    print(f"    (i.e., each update's delta increased by ~{stats['size_growth_rate']:.2f} bytes)")
-                
-                # Expected cumulative storage after 100 updates
-                # This is an arithmetic series: sum of (first_delta + 0*growth), (first_delta + 1*growth), ..., (first_delta + 99*growth)
-                # Formula: n * first_term + growth_rate * n * (n-1) / 2
-                n = 100
-                first_delta = stats['first_patch_size_delta']
-                growth_rate = stats['size_growth_rate']
-                expected_100 = n * first_delta + growth_rate * n * (n - 1) / 2
-                print(f"  Expected Cumulative Storage After 100 Updates: {expected_100:,.0f} bytes ({expected_100/1024:,.1f} KB)")
-                print(f"    (This is the total storage added across all 100 updates)")
+                print(f"\n  Mean Storage Growth Rate: {stats['size_growth_rate']:.2f} bytes/update")
+                print(f"    ({stats['growth_sequence_count']} sequence(s) with at least two PATCHes)")
+                print(f"  Mean First Patch Size Delta: {stats['avg_first_patch_size_delta']:.2f} bytes")
+                print(f"  Mean Last Patch Size Delta: {stats['avg_last_patch_size_delta']:.2f} bytes")
+                print(f"  Mean Projected Cumulative Storage After 100 Updates: {stats['expected_100_size_delta']:,.0f} bytes ({stats['expected_100_size_delta']/1024:,.1f} KB)")
         
         
         # Compare if both exist
@@ -431,20 +420,10 @@ class StatsAnalyzer:
                 print(f"    AG: {ag['size_growth_rate']:.2f} bytes/update")
                 print(f"    AG Growth Rate vs atomic: {growth_rate_diff:+.1f}%")
                 
-                print(f"\n  Expected Cumulative Storage After 100 Updates:")
-                # Arithmetic series sum: n * first_term + growth_rate * n * (n-1) / 2
-                n = 100
-                atomic_first = atomic['first_patch_size_delta']
-                atomic_growth = atomic['size_growth_rate']
-                atomic_100 = n * atomic_first + atomic_growth * n * (n - 1) / 2
-                
-                ag_first = ag['first_patch_size_delta']
-                ag_growth = ag['size_growth_rate']
-                ag_100 = n * ag_first + ag_growth * n * (n - 1) / 2
-                
-                cumulative_diff = ag_100 - atomic_100
-                print(f"    Atomic: {atomic_100:,.0f} bytes ({atomic_100/1024:,.1f} KB)")
-                print(f"    AG: {ag_100:,.0f} bytes ({ag_100/1024:,.1f} KB)")
+                print(f"\n  Mean Projected Cumulative Storage After 100 Updates:")
+                cumulative_diff = ag['expected_100_size_delta'] - atomic['expected_100_size_delta']
+                print(f"    Atomic: {atomic['expected_100_size_delta']:,.0f} bytes ({atomic['expected_100_size_delta']/1024:,.1f} KB)")
+                print(f"    AG: {ag['expected_100_size_delta']:,.0f} bytes ({ag['expected_100_size_delta']/1024:,.1f} KB)")
                 print(f"    Difference: {cumulative_diff:+,.0f} bytes ({cumulative_diff/1024:+.1f} KB)")
         
         
