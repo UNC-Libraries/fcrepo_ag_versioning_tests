@@ -234,12 +234,13 @@ python populate_is_member_of.py
 
 Analyzes all saved custom statistics files from Locust runs in the selected results directory. Creation-timing and storage-growth workflows are reported separately, so both workloads can share one configuration directory. For creation-timing runs, it reports successful and failed attempts plus mean, median, p95, p99, and bootstrap 95% confidence intervals for workflow and commit duration. For storage-growth runs, it compares atomic and Archival Group creation and PATCH workflows, including OCFL file/directory/size deltas and estimated storage growth per PATCH update.
 
-It depends on `locustfile.py` having completed at least one run that wrote statistics under `results/<TEST_CONFIG_NAME>/`. Pass a configuration name to analyze a specific results subdirectory; without one, it uses `TEST_CONFIG_NAME` or `default`. Use `compare` with a reference and comparison configuration to print both reports followed by normalized per-operation changes; operation counts are context only.
+It depends on `locustfile.py` having completed at least one run that wrote statistics under `results/<TEST_CONFIG_NAME>/`. Pass a configuration name to analyze a specific results subdirectory; without one, it uses `TEST_CONFIG_NAME` or `default`. Use `compare` with a reference and comparison configuration to print both reports followed by normalized per-operation changes; operation counts are context only. Add `--format markdown` to produce a GitHub-rendered report on standard output, suitable for redirecting into a versioned result file.
 
 ```bash
 python utils/stats_analyzer.py
 python utils/stats_analyzer.py autoversioning
 python utils/stats_analyzer.py compare mutable_creation_f71 autov_creation_f71
+python utils/stats_analyzer.py compare --format markdown mutable_creation_f71 autov_creation_f71 > results/analyses/f71_mutable_v_autov.md
 ```
 
 ## Statistics Collection

@@ -523,6 +523,199 @@ class StatsAnalyzer:
 
         print("=" * 70 + "\n")
 
+    @staticmethod
+    def _markdown_table(headers: List[str], rows: List[List[str]]) -> List[str]:
+        """Build a simple GitHub-flavored Markdown table."""
+        return [
+            "| " + " | ".join(headers) + " |",
+            "| " + " | ".join("---" for _ in headers) + " |",
+            *["| " + " | ".join(row) + " |" for row in rows],
+        ]
+
+    @staticmethod
+    def _markdown_change(reference: float, comparison: float, unit: str = "") -> str:
+        """Format an absolute and relative change for Markdown output."""
+        difference = comparison - reference
+        relative = f"{difference / reference * 100:+.1f}%" if reference > 0 else "n/a"
+        return f"{difference:+.4f}{unit} ({relative})"
+
+    def _markdown_config_report(self, config_name: str, data: Dict) -> List[str]:
+        """Render one configuration's pooled results as Markdown tables."""
+        lines = [f"## {config_name}"]
+        source_runs = data.get("run_metadata", {}).get("source_runs", [])
+        lines.append(f"Pooled runs: **{len(source_runs)}** ({', '.join(f'`{run}`' for run in source_runs)})")
+
+        timing = self.creation_timing_summary(data)
+        if any(stats["attempts"] for stats in timing.values()):
+            lines.extend(["", "### Creation Timing"])
+            rows = []
+            for collection_type, stats in timing.items():
+                workflow = stats["workflow_duration"]
+                commit = stats["commit_duration"]
+                workflow_mean = "n/a"
+                commit_mean = "n/a"
+                if workflow:
+                    low, high = workflow["mean_95_ci"]
+                    workflow_mean = f"{workflow['mean']:.4f}s ({low:.4f}s to {high:.4f}s)"
+                if commit:
+                    low, high = commit["mean_95_ci"]
+                    commit_mean = f"{commit['mean']:.4f}s ({low:.4f}s to {high:.4f}s)"
+                rows.append([
+                    collection_type.replace("_", " ").title(),
+                    str(stats["successes"]),
+                    str(stats["failures"]),
+                    workflow_mean,
+                    f"{workflow['median']:.4f}s / {workflow['p95']:.4f}s / {workflow['p99']:.4f}s" if workflow else "n/a",
+                    commit_mean,
+                    f"{commit['median']:.4f}s / {commit['p95']:.4f}s / {commit['p99']:.4f}s" if commit else "n/a",
+                ])
+            lines.extend(self._markdown_table(
+                ["Collection type", "Successful", "Failed", "Workflow mean (95% CI)", "Workflow median / p95 / p99", "Commit mean (95% CI)", "Commit median / p95 / p99"],
+                rows,
+            ))
+
+        creations = self.compare_creation_operations(data)
+        if any(creations.values()):
+            lines.extend(["", "### Collection Creation Storage"])
+            rows = []
+            for collection_type, stats in creations.items():
+                if not stats:
+                    continue
+                rows.append([
+                    collection_type.replace("_collection", "").replace("_", " ").title(),
+                    str(stats["count"]),
+                    f"{stats['avg_workflow_duration']:.4f}s",
+                    f"{stats['avg_commit_duration']:.4f}s",
+                    f"{stats['avg_file_count_delta']:.2f}",
+                    f"{stats['avg_dir_count_delta']:.2f}",
+                    f"{stats['avg_size_delta']:,.0f} bytes ({stats['avg_size_delta'] / 1024:.2f} KB)",
+                ])
+            lines.extend(self._markdown_table(
+                ["Collection type", "Collections", "Avg workflow", "Avg commit", "Avg files", "Avg directories", "Avg OCFL size"],
+                rows,
+            ))
+
+        patches = self.compare_patch_operations(data)
+        if any(patches.values()):
+            lines.extend(["", "### PATCH Storage"])
+            rows = []
+            for collection_type, stats in patches.items():
+                if not stats:
+                    continue
+                growth = "n/a"
+                projection = "n/a"
+                if stats["size_growth_rate"] is not None:
+                    growth = f"{stats['size_growth_rate']:,.2f} bytes/update"
+                    projection = f"{stats['expected_100_size_delta']:,.0f} bytes ({stats['expected_100_size_delta'] / 1024:,.1f} KB)"
+                rows.append([
+                    collection_type.replace("_collection", "").replace("_", " ").title(),
+                    str(stats["count"]),
+                    str(stats["sequence_count"]),
+                    f"{stats['avg_patch_duration']:.4f}s",
+                    f"{stats['avg_file_count_delta']:.2f} / {stats['avg_dir_count_delta']:.2f} / {stats['avg_size_delta']:,.2f} bytes",
+                    growth,
+                    projection,
+                ])
+            lines.extend(self._markdown_table(
+                ["Collection type", "PATCHes", "Sequences", "Avg duration", "Avg file / directory / size delta", "Mean growth rate", "Mean projected storage after 100 PATCHes"],
+                rows,
+            ))
+        return lines
+
+    def markdown_result_set_comparison(
+        self,
+        reference_data: Dict,
+        comparison_data: Dict,
+        reference_name: str,
+        comparison_name: str,
+    ) -> str:
+        """Render a complete GitHub-flavored Markdown report for two result sets."""
+        lines = [
+            f"# Fedora Comparison: {reference_name} vs {comparison_name}",
+            "",
+            "Negative duration changes mean the comparison configuration is faster. "
+            "Operation counts are context only; all other values are per-operation averages.",
+            "",
+            *self._markdown_config_report(reference_name, reference_data),
+            "",
+            *self._markdown_config_report(comparison_name, comparison_data),
+            "",
+            "## Result Set Change",
+        ]
+
+        reference_timing = self.creation_timing_summary(reference_data)
+        comparison_timing = self.creation_timing_summary(comparison_data)
+        timing_rows = []
+        for collection_type in ("atomic", "archival_group"):
+            reference = reference_timing[collection_type]
+            comparison = comparison_timing[collection_type]
+            if not reference["attempts"] or not comparison["attempts"]:
+                continue
+            timing_rows.append([
+                collection_type.replace("_", " ").title(),
+                f"{reference['successes']} successful, {reference['failures']} failed -> {comparison['successes']} successful, {comparison['failures']} failed",
+                f"{reference['workflow_duration']['mean']:.4f}s -> {comparison['workflow_duration']['mean']:.4f}s",
+                self._markdown_change(reference['workflow_duration']['mean'], comparison['workflow_duration']['mean'], "s"),
+                f"{reference['commit_duration']['mean']:.4f}s -> {comparison['commit_duration']['mean']:.4f}s",
+                self._markdown_change(reference['commit_duration']['mean'], comparison['commit_duration']['mean'], "s"),
+            ])
+        if timing_rows:
+            lines.extend(["", "### Creation Timing Changes"])
+            lines.extend(self._markdown_table(
+                ["Collection type", "Attempts", "Workflow mean", "Workflow change", "Commit mean", "Commit change"],
+                timing_rows,
+            ))
+
+        for title, method, metrics in (
+            (
+                "Collection Creation Storage Changes",
+                self.compare_creation_operations,
+                (
+                    ("Avg workflow", "avg_workflow_duration", "s"),
+                    ("Avg commit", "avg_commit_duration", "s"),
+                    ("Avg files", "avg_file_count_delta", ""),
+                    ("Avg directories", "avg_dir_count_delta", ""),
+                    ("Avg OCFL size", "avg_size_delta", " bytes"),
+                ),
+            ),
+            (
+                "PATCH Storage Changes",
+                self.compare_patch_operations,
+                (
+                    ("Avg PATCH duration", "avg_patch_duration", "s"),
+                    ("Avg files", "avg_file_count_delta", ""),
+                    ("Avg directories", "avg_dir_count_delta", ""),
+                    ("Avg OCFL size", "avg_size_delta", " bytes"),
+                    ("OCFL growth rate", "size_growth_rate", " bytes/update"),
+                ),
+            ),
+        ):
+            reference_stats = method(reference_data)
+            comparison_stats = method(comparison_data)
+            rows = []
+            for collection_type in ("atomic_collection", "archival_group_collection"):
+                reference = reference_stats[collection_type]
+                comparison = comparison_stats[collection_type]
+                if not reference or not comparison:
+                    continue
+                for label, key, unit in metrics:
+                    if reference.get(key) is None or comparison.get(key) is None:
+                        continue
+                    rows.append([
+                        collection_type.replace("_collection", "").replace("_", " ").title(),
+                        label,
+                        f"{reference[key]:,.4f}{unit}",
+                        f"{comparison[key]:,.4f}{unit}",
+                        self._markdown_change(reference[key], comparison[key], unit),
+                    ])
+            if rows:
+                lines.extend(["", f"### {title}"])
+                lines.extend(self._markdown_table(
+                    ["Collection type", "Metric", reference_name, comparison_name, "Change"],
+                    rows,
+                ))
+        return "\n".join(lines) + "\n"
+
 
 if __name__ == "__main__":
     import sys
@@ -542,17 +735,43 @@ if __name__ == "__main__":
         return analyzer, data
 
     if len(sys.argv) > 1 and sys.argv[1] == "compare":
-        if len(sys.argv) != 4:
-            raise SystemExit("Usage: python utils/stats_analyzer.py compare <reference-config> <comparison-config>")
-        reference_analyzer, reference_data = analyze_config(sys.argv[2])
-        comparison_analyzer, comparison_data = analyze_config(sys.argv[3])
-        if reference_data and comparison_data:
-            reference_analyzer.print_result_set_comparison(
+        arguments = sys.argv[2:]
+        output_format = "text"
+        if arguments[:2] == ["--format", "markdown"]:
+            output_format = "markdown"
+            arguments = arguments[2:]
+        if len(arguments) != 2:
+            raise SystemExit(
+                "Usage: python utils/stats_analyzer.py compare [--format markdown] "
+                "<reference-config> <comparison-config>"
+            )
+
+        if output_format == "markdown":
+            reference_analyzer = StatsAnalyzer(config_name=arguments[0])
+            comparison_analyzer = StatsAnalyzer(config_name=arguments[1])
+            for analyzer in (reference_analyzer, comparison_analyzer):
+                if not analyzer.list_available_runs():
+                    raise SystemExit(
+                        f"No statistics files found in '{analyzer.results_dir}' directory"
+                    )
+            reference_data = reference_analyzer.load_combined_runs()
+            comparison_data = comparison_analyzer.load_combined_runs()
+            print(reference_analyzer.markdown_result_set_comparison(
                 reference_data,
                 comparison_data,
                 reference_analyzer.config_name,
                 comparison_analyzer.config_name,
-            )
+            ), end="")
+        else:
+            reference_analyzer, reference_data = analyze_config(arguments[0])
+            comparison_analyzer, comparison_data = analyze_config(arguments[1])
+            if reference_data and comparison_data:
+                reference_analyzer.print_result_set_comparison(
+                    reference_data,
+                    comparison_data,
+                    reference_analyzer.config_name,
+                    comparison_analyzer.config_name,
+                )
     else:
         config_name = sys.argv[1] if len(sys.argv) > 1 else None
         analyze_config(config_name)
